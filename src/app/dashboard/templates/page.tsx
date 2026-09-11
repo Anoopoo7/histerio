@@ -12,6 +12,7 @@ import {
   Edit,
   History,
   AlertTriangle,
+  Terminal,
 } from 'lucide-react';
 import { getTemplatesApi, activateTemplateApi, archiveTemplateApi, ApiError } from '@/lib/api';
 import { EditorType, Template, TemplateStatus } from '@/types';
@@ -31,6 +32,7 @@ import {
   EmptyState,
   Modal,
 } from '@/components/ui';
+import { SendApiCodeModal } from '@/components/SendApiCodeModal';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useToast } from '@/hooks/useToast';
 
@@ -53,6 +55,7 @@ export default function TemplatesListPage() {
   // Modals for actions
   const [activateTarget, setActivateTarget] = useState<Template | null>(null);
   const [archiveTarget, setArchiveTarget] = useState<Template | null>(null);
+  const [codeModalTarget, setCodeModalTarget] = useState<Template | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
 
   const loadTemplates = useCallback(async () => {
@@ -271,6 +274,14 @@ export default function TemplatesListPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        title="API Integration Snippet"
+                        onClick={() => setCodeModalTarget(tpl)}
+                      >
+                        <Terminal className="w-3.5 h-3.5 text-indigo-400" />
+                      </Button>
                       <Link href={`/dashboard/templates/${tpl.id}`}>
                         <Button variant="ghost" size="sm" title="Edit Template">
                           <Edit className="w-3.5 h-3.5" />
@@ -320,6 +331,15 @@ export default function TemplatesListPage() {
             />
           </div>
         </div>
+      )}
+
+      {/* Code Snippet Modal */}
+      {codeModalTarget && (
+        <SendApiCodeModal
+          isOpen={Boolean(codeModalTarget)}
+          onClose={() => setCodeModalTarget(null)}
+          template={codeModalTarget}
+        />
       )}
 
       {/* Activate Confirmation Modal */}

@@ -12,6 +12,7 @@ import {
   Eye,
   Variable,
   Sparkles,
+  Terminal,
 } from 'lucide-react';
 import {
   getTemplateByIdApi,
@@ -31,6 +32,7 @@ import {
   LoadingSpinner,
   SandboxedIframe,
 } from '@/components/ui';
+import { SendApiCodeModal } from '@/components/SendApiCodeModal';
 import { useToast } from '@/hooks/useToast';
 
 export default function CodeTemplateEditorPage() {
@@ -49,6 +51,7 @@ export default function CodeTemplateEditorPage() {
   const [isSavingVersion, setIsSavingVersion] = useState(false);
   const [isUpdatingSubject, setIsUpdatingSubject] = useState(false);
   const [isActivating, setIsActivating] = useState(false);
+  const [isCodeModalOpen, setIsCodeModalOpen] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -310,6 +313,15 @@ export default function CodeTemplateEditorPage() {
 
         {/* Action Buttons */}
         <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsCodeModalOpen(true)}
+            leftIcon={<Terminal className="w-4 h-4 text-indigo-400" />}
+          >
+            Send via API
+          </Button>
+
           <Link href={`/dashboard/templates/${template.id}/versions`}>
             <Button variant="outline" size="sm" leftIcon={<History className="w-4 h-4" />}>
               Versions
@@ -447,6 +459,14 @@ export default function CodeTemplateEditorPage() {
           </Card>
         </div>
       </div>
+
+      {/* Code Modal */}
+      <SendApiCodeModal
+        isOpen={isCodeModalOpen}
+        onClose={() => setIsCodeModalOpen(false)}
+        template={template}
+        sampleDataJson={mockDataJson}
+      />
     </div>
   );
 }

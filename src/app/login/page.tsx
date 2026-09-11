@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { Zap, Mail, Lock, ArrowRight } from 'lucide-react';
+import { Zap, Mail, Lock, ArrowRight, ShieldAlert, RefreshCw, ArrowLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
 import { Button, Input, Card, CardContent } from '@/components/ui';
-import { ApiError } from '@/lib/api';
+import { ApiError, resendVerificationApi } from '@/lib/api';
 
 export default function LoginPage() {
   const { login, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -19,24 +19,41 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // Unverified state handling
+  const [isUnverified, setIsUnverified] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState('');
+  const [cooldown, setCooldown] = useState(0);
+
   useEffect(() => {
     if (!authLoading && isAuthenticated) {
       router.push('/dashboard');
     }
   }, [authLoading, isAuthenticated, router]);
 
+  // Cooldown timer logic
+  useEffect(() => {
+    if (cooldown <= 0) return;
+    const timer = setInterval(() => {
+      setCooldown((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldown]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email.trim() || !password.trim()) {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password.trim()) {
       setError('Email and password are required');
       return;
     }
 
     setIsLoading(true);
     setError('');
+    setIsUnverified(false);
 
     try {
-      await login({ email: email.trim(), password });
+      await login({ email: trimmedEmail, password });
       addToast({
         type: 'success',
         title: 'Logged In',
@@ -44,12 +61,46 @@ export default function LoginPage() {
       });
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        if (err.statusCode === 403 && (err.code === 'EMAIL_NOT_VERIFIED' || err.message.toLowerCase().includes('verify'))) {
+          setIsUnverified(true);
+        } else if (err.statusCode === 401) {
+          setError('Invalid email or password.');
+        } else {
+          setError(err.message);
+        }
       } else {
         setError('Invalid credentials or server unavailable');
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return;
+
+    setResending(true);
+    setResendMessage('');
+
+    try {
+      const res = await resendVerificationApi({ email: trimmedEmail });
+      const message = res.message || 'If an account requires verification, a verification email has been sent.';
+      setResendMessage(message);
+      setCooldown(60);
+      addToast({
+        type: 'info',
+        title: 'Verification Email',
+        message,
+      });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setResendMessage(err.message);
+      } else {
+        setResendMessage('Failed to send verification email. Please try again.');
+      }
+    } finally {
+      setResending(false);
     }
   };
 
@@ -73,45 +124,99 @@ export default function LoginPage() {
         {/* Card Form */}
         <Card className="border-zinc-800/80 shadow-2xl backdrop-blur-sm bg-zinc-900/90">
           <CardContent className="p-6 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-medium">
-                  {error}
+            {isUnverified ? (
+              /* UNVERIFIED EMAIL CARD STATE */
+              <div className="text-center space-y-5">
+                <div className="inline-flex items-center justify-center w-14 h-14 rounded-full bg-amber-500/10 text-amber-400 ring-8 ring-amber-500/5">
+                  <ShieldAlert className="w-8 h-8" />
                 </div>
-              )}
+                <div className="space-y-1">
+                  <h2 className="text-xl font-bold text-zinc-100">Email not verified</h2>
+                  <p className="text-xs text-zinc-400 leading-relaxed">
+                    Please verify your email address (<span className="text-zinc-200 font-semibold">{email}</span>) before signing in.
+                    We can send you a new verification link.
+                  </p>
+                </div>
 
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                leftIcon={<Mail className="w-4 h-4" />}
-                required
-                autoComplete="email"
-              />
+                {resendMessage && (
+                  <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-xs text-indigo-300 font-medium">
+                    {resendMessage}
+                  </div>
+                )}
 
-              <Input
-                label="Password"
-                type="password"
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                leftIcon={<Lock className="w-4 h-4" />}
-                required
-                autoComplete="current-password"
-              />
+                <div className="space-y-3 pt-2">
+                  <Button
+                    onClick={handleResendVerification}
+                    isLoading={resending}
+                    disabled={cooldown > 0}
+                    size="lg"
+                    className="w-full"
+                    leftIcon={<RefreshCw className="w-4 h-4" />}
+                  >
+                    {cooldown > 0 ? `Resend in ${cooldown}s` : 'Resend verification email'}
+                  </Button>
 
-              <Button
-                type="submit"
-                isLoading={isLoading}
-                className="w-full mt-2"
-                size="lg"
-                rightIcon={<ArrowRight className="w-4 h-4" />}
-              >
-                Sign In
-              </Button>
-            </form>
+                  <button
+                    onClick={() => setIsUnverified(false)}
+                    className="w-full text-xs text-zinc-400 hover:text-zinc-200 font-medium py-2 flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <ArrowLeft className="w-3.5 h-3.5" />
+                    Change email
+                  </button>
+                </div>
+              </div>
+            ) : (
+              /* NORMAL LOGIN FORM */
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-medium">
+                    {error}
+                  </div>
+                )}
+
+                <Input
+                  label="Email Address"
+                  type="email"
+                  placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  leftIcon={<Mail className="w-4 h-4" />}
+                  required
+                  autoComplete="email"
+                />
+
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs font-semibold text-zinc-300">Password</label>
+                    <Link
+                      href="/forgot-password"
+                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium hover:underline"
+                    >
+                      Forgot password?
+                    </Link>
+                  </div>
+                  <Input
+                    type="password"
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    leftIcon={<Lock className="w-4 h-4" />}
+                    required
+                    autoComplete="current-password"
+                  />
+                </div>
+
+                <Button
+                  type="submit"
+                  isLoading={isLoading}
+                  className="w-full mt-2"
+                  size="lg"
+                  rightIcon={<ArrowRight className="w-4 h-4" />}
+                >
+                  Sign In
+                </Button>
+              </form>
+            )}
           </CardContent>
         </Card>
 

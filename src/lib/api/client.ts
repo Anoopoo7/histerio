@@ -3,6 +3,7 @@ import { ApiErrorResponse } from '@/types';
 export class ApiError extends Error {
   statusCode: number;
   messages: string[];
+  code?: string;
   errorResponse?: ApiErrorResponse;
 
   constructor(statusCode: number, message: string | string[], errorResponse?: ApiErrorResponse) {
@@ -11,6 +12,7 @@ export class ApiError extends Error {
     this.name = 'ApiError';
     this.statusCode = statusCode;
     this.messages = Array.isArray(message) ? message : [message];
+    this.code = errorResponse?.code;
     this.errorResponse = errorResponse;
   }
 }
@@ -56,11 +58,12 @@ export function registerUnauthorizedHandler(cb: () => void): void {
 interface FetchOptions extends RequestInit {
   orgId?: string;
   skipOrgHeader?: boolean;
+  skipAuthToken?: boolean;
   params?: Record<string, string | number | boolean | undefined | null>;
 }
 
 export async function request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
-  const { orgId, skipOrgHeader = false, params, headers: customHeaders, ...restOptions } = options;
+  const { orgId, skipOrgHeader = false, skipAuthToken = false, params, headers: customHeaders, ...restOptions } = options;
 
   let url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
@@ -82,9 +85,11 @@ export async function request<T>(endpoint: string, options: FetchOptions = {}): 
     ...(customHeaders as Record<string, string>),
   };
 
-  const token = getStoredToken();
-  if (token) {
-    headers['Authorization'] = `Bearer ${token}`;
+  if (!skipAuthToken) {
+    const token = getStoredToken();
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
   }
 
   if (!skipOrgHeader) {

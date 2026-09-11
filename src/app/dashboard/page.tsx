@@ -13,6 +13,7 @@ import {
   Plus,
   ArrowRight,
   Activity,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   getEmailsApi,
@@ -36,9 +37,11 @@ import {
   EmptyState,
 } from '@/components/ui';
 import { useOrganization } from '@/hooks/useOrganization';
+import { useAuth } from '@/hooks/useAuth';
 
 export default function DashboardOverviewPage() {
   const { currentOrg } = useOrganization();
+  const { user } = useAuth();
   const router = useRouter();
 
   const [sentCount, setSentCount] = useState<number | null>(null);
@@ -141,6 +144,21 @@ export default function DashboardOverviewPage() {
           </Link>
         </div>
       </div>
+
+      {/* Unverified Email Notice if user email is unverified */}
+      {user && user.emailVerified === false && (
+        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>Your email address ({user.email}) is not verified. Please verify your email address.</span>
+          </div>
+          <Link href={`/verify-email?email=${encodeURIComponent(user.email)}`}>
+            <Button variant="secondary" size="sm" className="whitespace-nowrap">
+              Verify Email
+            </Button>
+          </Link>
+        </div>
+      )}
 
       {/* SMTP Configuration Notice if not set up */}
       {smtpConfigured === false && (

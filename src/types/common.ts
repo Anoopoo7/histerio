@@ -9,6 +9,7 @@ export interface PaginatedResponse<T> {
 export interface ApiErrorResponse {
   statusCode: number;
   message: string | string[];
+  code?: string;
   error?: string;
   timestamp?: string;
   path?: string;

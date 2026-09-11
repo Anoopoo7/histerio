@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Building2, ChevronDown, Plus, Menu } from 'lucide-react';
+import { Building2, ChevronDown, Plus, Menu, CheckCircle2, ShieldAlert } from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
+import { useAuth } from '@/hooks/useAuth';
 
 export interface NavbarProps {
   onOpenMobileSidebar: () => void;
@@ -11,6 +12,7 @@ export interface NavbarProps {
 
 export function Navbar({ onOpenMobileSidebar, onOpenCreateOrgModal }: NavbarProps) {
   const { organizations, currentOrg, selectOrganization } = useOrganization();
+  const { user } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   return (
@@ -86,6 +88,23 @@ export function Navbar({ onOpenMobileSidebar, onOpenCreateOrgModal }: NavbarProp
           )}
         </div>
       </div>
+
+      {/* Right Side: User Status */}
+      {user && (
+        <div className="flex items-center gap-3">
+          {user.emailVerified ? (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium">
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>Verified</span>
+            </div>
+          ) : (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium">
+              <ShieldAlert className="w-3.5 h-3.5" />
+              <span>Unverified</span>
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 }

@@ -17,6 +17,7 @@ export default function RegisterPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -28,13 +29,31 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      setError('All fields are required');
+    const trimmedName = name.trim();
+    const trimmedEmail = email.trim();
+
+    if (!trimmedName) {
+      setError('Full name is required');
       return;
     }
 
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters');
+    if (!trimmedEmail || !trimmedEmail.includes('@')) {
+      setError('Please enter a valid email address');
+      return;
+    }
+
+    if (!password) {
+      setError('Password is required');
+      return;
+    }
+
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters long');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setError('Passwords do not match');
       return;
     }
 
@@ -42,21 +61,28 @@ export default function RegisterPage() {
     setError('');
 
     try {
-      await register({
-        name: name.trim(),
-        email: email.trim(),
+      const res = await register({
+        name: trimmedName,
+        email: trimmedEmail,
         password,
       });
+
       addToast({
         type: 'success',
         title: 'Account Created',
-        message: 'Welcome to Histeria!',
+        message: res.message || 'Registration successful. Verification email queued.',
       });
+
+      router.push(`/verify-email?email=${encodeURIComponent(trimmedEmail)}`);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        if (err.statusCode === 409) {
+          setError('An account with this email already exists.');
+        } else {
+          setError(err.message);
+        }
       } else {
-        setError('Failed to create account');
+        setError('Failed to create account. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -114,13 +140,24 @@ export default function RegisterPage() {
               <Input
                 label="Password"
                 type="password"
-                placeholder="At least 6 characters"
+                placeholder="At least 8 characters"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 leftIcon={<Lock className="w-4 h-4" />}
                 required
                 autoComplete="new-password"
-                helperText="Must be at least 6 characters"
+                helperText="Must be at least 8 characters"
+              />
+
+              <Input
+                label="Confirm Password"
+                type="password"
+                placeholder="Repeat your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                leftIcon={<Lock className="w-4 h-4" />}
+                required
+                autoComplete="new-password"
               />
 
               <Button

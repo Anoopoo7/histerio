@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { LoginPayload, RegisterPayload, User } from '@/types';
+import { GenericMessageResponse, LoginPayload, RegisterPayload, User } from '@/types';
 import {
   loginApi,
   registerApi,
@@ -19,7 +19,7 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<void>;
-  register: (payload: RegisterPayload) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<GenericMessageResponse>;
   logout: () => void;
 }
 
@@ -73,15 +73,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     router.push('/dashboard');
   };
 
-  const register = async (payload: RegisterPayload) => {
-    const res = await registerApi(payload);
-    setStoredToken(res.accessToken);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(USER_KEY, JSON.stringify(res.user));
-    }
-    setToken(res.accessToken);
-    setUser(res.user);
-    router.push('/dashboard');
+  const register = async (payload: RegisterPayload): Promise<GenericMessageResponse> => {
+    return await registerApi(payload);
   };
 
   const isAuthenticated = Boolean(token);

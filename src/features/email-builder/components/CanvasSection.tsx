@@ -14,6 +14,8 @@ export interface CanvasSectionProps {
   selectedColumnId: string | null;
   selectedBlockId: string | null;
   isSelected: boolean;
+  testDataJson?: string;
+  renderMode?: 'raw' | 'rendered';
   onSelectSection: () => void;
   onSelectRow: (rowId: string) => void;
   onSelectColumn: (columnId: string) => void;
@@ -36,6 +38,8 @@ export function CanvasSection({
   selectedColumnId,
   selectedBlockId,
   isSelected,
+  testDataJson,
+  renderMode,
   onSelectSection,
   onSelectRow,
   onSelectColumn,
@@ -95,6 +99,8 @@ export function CanvasSection({
               selectedColumnId={selectedColumnId}
               selectedBlockId={selectedBlockId}
               isSelected={selectedRowId === row.id}
+              testDataJson={testDataJson}
+              renderMode={renderMode}
               onSelectRow={() => onSelectRow(row.id)}
               onSelectColumn={onSelectColumn}
               onSelectBlock={onSelectBlock}

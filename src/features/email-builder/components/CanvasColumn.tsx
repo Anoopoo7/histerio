@@ -9,6 +9,8 @@ export interface CanvasColumnProps {
   columnWidthPx: number;
   selectedBlockId: string | null;
   isSelected: boolean;
+  testDataJson?: string;
+  renderMode?: 'raw' | 'rendered';
   onSelectColumn: () => void;
   onSelectBlock: (blockId: string) => void;
   onUpdateBlockProps: (blockId: string, props: Record<string, unknown>) => void;
@@ -23,6 +25,8 @@ export function CanvasColumn({
   columnWidthPx,
   selectedBlockId,
   isSelected,
+  testDataJson,
+  renderMode,
   onSelectColumn,
   onSelectBlock,
   onUpdateBlockProps,
@@ -61,6 +65,8 @@ export function CanvasColumn({
               block={block}
               columnWidthPx={columnWidthPx * (column.width / 100)}
               isSelected={selectedBlockId === block.id}
+              testDataJson={testDataJson}
+              renderMode={renderMode}
               onSelect={() => onSelectBlock(block.id)}
               onUpdateProps={(props) => onUpdateBlockProps(block.id, props)}
               onMoveUp={idx > 0 ? () => onMoveBlock(block.id, 'up') : undefined}

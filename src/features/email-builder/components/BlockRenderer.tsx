@@ -14,11 +14,14 @@ import {
   TextProps,
 } from '../model/types';
 import { BlockToolbar } from './BlockToolbar';
+import { replaceVariablesWithMockData } from '../utils/variableUtils';
 
 export interface BlockRendererProps {
   block: BuilderBlock;
   columnWidthPx: number;
   isSelected: boolean;
+  testDataJson?: string;
+  renderMode?: 'raw' | 'rendered';
   onSelect: () => void;
   onUpdateProps: (props: Record<string, unknown>) => void;
   onMoveUp?: () => void;
@@ -32,6 +35,8 @@ export function BlockRenderer({
   block,
   columnWidthPx,
   isSelected,
+  testDataJson,
+  renderMode = 'raw',
   onSelect,
   onUpdateProps,
   onMoveUp,
@@ -41,6 +46,14 @@ export function BlockRenderer({
   onSelectParent,
 }: BlockRendererProps) {
   const isResizingImageRef = useRef(false);
+
+  const evalText = (rawStr: string | undefined | null) => {
+    if (!rawStr) return '';
+    if (renderMode === 'rendered' && testDataJson) {
+      return replaceVariablesWithMockData(rawStr, testDataJson);
+    }
+    return rawStr;
+  };
 
   const handlePointerDownResize = (e: React.PointerEvent) => {
     e.stopPropagation();
@@ -86,6 +99,7 @@ export function BlockRenderer({
       case 'heading': {
         const p = block.props as HeadingProps;
         const TagName = p.level || 'h2';
+        const displayText = evalText(p.text || 'Heading Title');
         return (
           <TagName
             style={{
@@ -98,13 +112,14 @@ export function BlockRenderer({
               lineHeight: p.lineHeight || 1.3,
             }}
           >
-            {p.text || 'Heading Title'}
+            {displayText}
           </TagName>
         );
       }
 
       case 'text': {
         const p = block.props as TextProps;
+        const displayContent = evalText(p.content || '');
         return (
           <div
             style={{
@@ -119,7 +134,7 @@ export function BlockRenderer({
               padding: typeof p.padding === 'number' ? `${p.padding}px` : p.padding || '0px',
             }}
           >
-            {p.bold ? <strong>{p.content}</strong> : p.content}
+            {p.bold ? <strong>{displayContent}</strong> : displayContent}
           </div>
         );
       }
@@ -132,8 +147,8 @@ export function BlockRenderer({
             <div className="relative inline-block max-w-full">
               {/* eslint-disable-next-html-element-cap */}
               <img
-                src={p.src}
-                alt={p.alt || 'Email Image'}
+                src={evalText(p.src)}
+                alt={evalText(p.alt || 'Email Image')}
                 style={{
                   width: `${displayWidth}px`,
                   height: p.height ? `${p.height}px` : 'auto',
@@ -156,6 +171,7 @@ export function BlockRenderer({
 
       case 'button': {
         const p = block.props as ButtonProps;
+        const displayText = evalText(p.text || 'Button');
         return (
           <div style={{ textAlign: p.align || 'center' }}>
             <span
@@ -171,7 +187,7 @@ export function BlockRenderer({
                 textDecoration: 'none',
               }}
             >
-              {p.text || 'Button'}
+              {displayText}
             </span>
           </div>
         );

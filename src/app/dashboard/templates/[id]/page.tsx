@@ -34,6 +34,7 @@ import {
 import { SendApiCodeModal } from '@/components/SendApiCodeModal';
 import { useToast } from '@/hooks/useToast';
 import { VisualEmailBuilder } from '@/features/email-builder/components/VisualEmailBuilder';
+import { DEFAULT_MOCK_DATA_JSON } from '@/features/email-builder/utils/variableUtils';
 
 export default function CodeTemplateEditorPage() {
   const params = useParams();
@@ -45,7 +46,7 @@ export default function CodeTemplateEditorPage() {
 
   const [subject, setSubject] = useState('');
   const [html, setHtml] = useState('<html>\n  <body>\n    <h1>Hello {{customer.name}}</h1>\n    <p>Your order {{order.id}} has been processed.</p>\n  </body>\n</html>');
-  const [mockDataJson, setMockDataJson] = useState('{\n  "customer": { "name": "John Doe" },\n  "order": { "id": "ORD-98231" }\n}');
+  const [mockDataJson, setMockDataJson] = useState(DEFAULT_MOCK_DATA_JSON);
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSavingVersion, setIsSavingVersion] = useState(false);

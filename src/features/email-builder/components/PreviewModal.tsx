@@ -3,28 +3,25 @@
 import React, { useState, useMemo } from 'react';
 import { Modal, Button, Badge, SandboxedIframe } from '@/components/ui';
 import { Monitor, Smartphone, Variable } from 'lucide-react';
-import { replaceVariablesWithMockData } from '../utils/variableUtils';
+import { DEFAULT_MOCK_DATA_JSON, replaceVariablesWithMockData } from '../utils/variableUtils';
 
 export interface PreviewModalProps {
   isOpen: boolean;
   onClose: () => void;
   html: string;
+  sampleJson?: string;
 }
 
-export function PreviewModal({ isOpen, onClose, html }: PreviewModalProps) {
+export function PreviewModal({ isOpen, onClose, html, sampleJson: initialSampleJson }: PreviewModalProps) {
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [showJsonEditor, setShowJsonEditor] = useState(false);
-  const [sampleJson, setSampleJson] = useState(
-    JSON.stringify(
-      {
-        customer: { name: 'John Doe', email: 'john@example.com' },
-        order: { id: 'ORD-98231', total: '₹2,499', status: 'SHIPPED' },
-        company: { name: 'Acme Corp' },
-      },
-      null,
-      2
-    )
-  );
+  const [sampleJson, setSampleJson] = useState(initialSampleJson || DEFAULT_MOCK_DATA_JSON);
+
+  React.useEffect(() => {
+    if (initialSampleJson) {
+      setSampleJson(initialSampleJson);
+    }
+  }, [initialSampleJson]);
 
   const previewHtml = useMemo(() => {
     return replaceVariablesWithMockData(html, sampleJson);

@@ -11,6 +11,8 @@ export interface CanvasRowProps {
   selectedColumnId: string | null;
   selectedBlockId: string | null;
   isSelected: boolean;
+  testDataJson?: string;
+  renderMode?: 'raw' | 'rendered';
   onSelectRow: () => void;
   onSelectColumn: (columnId: string) => void;
   onSelectBlock: (blockId: string) => void;
@@ -27,6 +29,8 @@ export function CanvasRow({
   selectedColumnId,
   selectedBlockId,
   isSelected,
+  testDataJson,
+  renderMode,
   onSelectRow,
   onSelectColumn,
   onSelectBlock,
@@ -86,6 +90,8 @@ export function CanvasRow({
               columnWidthPx={rowWidthPx}
               selectedBlockId={selectedBlockId}
               isSelected={selectedColumnId === col.id}
+              testDataJson={testDataJson}
+              renderMode={renderMode}
               onSelectColumn={() => onSelectColumn(col.id)}
               onSelectBlock={onSelectBlock}
               onUpdateBlockProps={onUpdateBlockProps}

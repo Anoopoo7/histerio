@@ -18,13 +18,16 @@ import {
   GripVertical,
 } from 'lucide-react';
 
+export type PresetSnippetType = 'order-summary-table' | 'customer-greeting' | 'receipt-callout' | 'product-card';
+
 export interface ComponentPaletteProps {
   onStartDrag: (item: DragItem, e: React.PointerEvent) => void;
   onAddLayout: (layoutType: LayoutType) => void;
   onAddBlock: (blockType: BuilderBlockType) => void;
+  onAddPresetSnippet?: (snippetType: PresetSnippetType) => void;
 }
 
-export function ComponentPalette({ onStartDrag, onAddLayout, onAddBlock }: ComponentPaletteProps) {
+export function ComponentPalette({ onStartDrag, onAddLayout, onAddBlock, onAddPresetSnippet }: ComponentPaletteProps) {
   const getBlockIcon = (type: BuilderBlockType) => {
     switch (type) {
       case 'text':
@@ -85,6 +88,60 @@ export function ComponentPalette({ onStartDrag, onAddLayout, onAddBlock }: Compo
               <GripVertical className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 shrink-0" />
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Dynamic & Loop Snippets Category */}
+      <div className="p-4 border-b border-zinc-800 space-y-3">
+        <span className="text-[11px] font-semibold text-purple-400 uppercase tracking-wider block flex items-center justify-between">
+          <span>Dynamic Loop Snippets</span>
+          <span className="text-[9px] px-1.5 py-0.5 bg-purple-500/20 text-purple-300 rounded font-mono">Handlebars</span>
+        </span>
+        <div className="grid grid-cols-1 gap-2">
+          <div
+            onClick={() => onAddPresetSnippet?.('order-summary-table')}
+            className="p-2.5 bg-purple-950/30 border border-purple-800/40 rounded-xl hover:border-purple-500 hover:bg-purple-500/10 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-purple-200 group-hover:text-purple-100">
+                Recursive Items Table
+              </span>
+              <span className="text-[10px] text-purple-400 font-mono">{"{{#each order.items}}"}</span>
+            </div>
+            <span className="text-[10px] text-zinc-400 block mt-1">
+              Loops over order items, prices, quantities, and totals
+            </span>
+          </div>
+
+          <div
+            onClick={() => onAddPresetSnippet?.('customer-greeting')}
+            className="p-2.5 bg-indigo-950/30 border border-indigo-800/40 rounded-xl hover:border-indigo-500 hover:bg-indigo-500/10 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-indigo-200 group-hover:text-indigo-100">
+                Customer & Order Header
+              </span>
+              <span className="text-[10px] text-indigo-400 font-mono">{"{{customer.name}}"}</span>
+            </div>
+            <span className="text-[10px] text-zinc-400 block mt-1">
+              Header with customer name, order ID & status
+            </span>
+          </div>
+
+          <div
+            onClick={() => onAddPresetSnippet?.('receipt-callout')}
+            className="p-2.5 bg-emerald-950/30 border border-emerald-800/40 rounded-xl hover:border-emerald-500 hover:bg-emerald-500/10 transition-all cursor-pointer group"
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-emerald-200 group-hover:text-emerald-100">
+                Receipt Total Callout
+              </span>
+              <span className="text-[10px] text-emerald-400 font-mono">{"{{order.total}}"}</span>
+            </div>
+            <span className="text-[10px] text-zinc-400 block mt-1">
+              Highlighted banner with grand total and action button
+            </span>
+          </div>
         </div>
       </div>
 

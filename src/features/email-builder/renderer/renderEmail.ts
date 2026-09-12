@@ -18,6 +18,10 @@ import {
 
 export function escapeHtmlText(text: string | undefined | null): string {
   if (!text) return '';
+  // Preserve Handlebars tags {{...}} and HTML tags without escaping < or >
+  if (text.includes('{{') || /<[a-z][\s\S]*>/i.test(text)) {
+    return text;
+  }
   return text
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')

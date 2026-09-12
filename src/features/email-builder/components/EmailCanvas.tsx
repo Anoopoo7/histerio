@@ -1,13 +1,13 @@
-'use client';
-
-import React from 'react';
+import React, { useState } from 'react';
 import { BuilderColumn, BuilderDocument, BuilderSection, SelectedTarget } from '../model/types';
 import { CanvasSection } from './CanvasSection';
+import { Code2, Sparkles } from 'lucide-react';
 
 export interface EmailCanvasProps {
   doc: BuilderDocument;
   selectedTarget: SelectedTarget | null;
   deviceView: 'desktop' | 'mobile';
+  testDataJson?: string;
   onSelectTarget: (target: SelectedTarget | null) => void;
   onUpdateRowColumns: (rowId: string, newColumns: BuilderColumn[]) => void;
   onUpdateBlockProps: (blockId: string, props: Record<string, unknown>) => void;
@@ -24,6 +24,7 @@ export function EmailCanvas({
   doc,
   selectedTarget,
   deviceView,
+  testDataJson,
   onSelectTarget,
   onUpdateRowColumns,
   onUpdateBlockProps,
@@ -35,6 +36,7 @@ export function EmailCanvas({
   onDeleteSection,
   onAddRow,
 }: EmailCanvasProps) {
+  const [renderMode, setRenderMode] = useState<'raw' | 'rendered'>('rendered');
   const settings = doc.settings;
   const canvasWidth = deviceView === 'mobile' ? 360 : settings.width || 600;
 
@@ -47,8 +49,38 @@ export function EmailCanvas({
     <div
       onClick={() => onSelectTarget({ type: 'document' })}
       style={{ backgroundColor: settings.backgroundColor }}
-      className="flex-1 overflow-y-auto p-6 md:p-10 flex justify-center select-none"
+      className="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col items-center select-none"
     >
+      {/* Canvas View Mode Toggle Switch */}
+      <div className="mb-4 flex items-center bg-zinc-900 border border-zinc-800 p-1 rounded-xl shadow-lg z-10" onClick={(e) => e.stopPropagation()}>
+        <button
+          type="button"
+          onClick={() => setRenderMode('rendered')}
+          className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+            renderMode === 'rendered'
+              ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+          title="Evaluate Handlebars tags using Test JSON Payload"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+          <span>Evaluated Payload</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setRenderMode('raw')}
+          className={`px-3 py-1 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+            renderMode === 'raw'
+              ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+              : 'text-zinc-400 hover:text-zinc-200'
+          }`}
+          title="Show raw Handlebars tags like {{order.name}}"
+        >
+          <Code2 className="w-3.5 h-3.5 text-indigo-400" />
+          <span>Raw Tags {"{{...}}"}</span>
+        </button>
+      </div>
+
       <div
         style={{
           width: `${canvasWidth}px`,
@@ -73,6 +105,8 @@ export function EmailCanvas({
               selectedColumnId={selectedColumnId}
               selectedBlockId={selectedBlockId}
               isSelected={selectedSectionId === section.id}
+              testDataJson={testDataJson}
+              renderMode={renderMode}
               onSelectSection={() => onSelectTarget({ type: 'section', id: section.id })}
               onSelectRow={(rowId) => onSelectTarget({ type: 'row', id: rowId, sectionId: section.id })}
               onSelectColumn={(colId) =>

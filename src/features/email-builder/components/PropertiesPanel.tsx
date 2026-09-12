@@ -15,7 +15,7 @@ import {
   TextProps,
 } from '../model/types';
 import { VariablePickerPopover } from './VariablePickerPopover';
-import { Button, Input, Select } from '@/components/ui';
+import { Button, Input, Select, Badge } from '@/components/ui';
 import {
   AlignLeft,
   AlignCenter,
@@ -27,11 +27,17 @@ import {
   Settings,
   X,
   Trash2,
+  Code2,
+  CheckCircle2,
+  AlertCircle,
+  RotateCcw,
 } from 'lucide-react';
 
 export interface PropertiesPanelProps {
   doc: BuilderDocument;
   selectedTarget: SelectedTarget | null;
+  testDataJson: string;
+  onUpdateTestDataJson: (jsonStr: string) => void;
   onUpdateDocumentSettings: (settings: Record<string, unknown>) => void;
   onUpdateSectionProps: (sectionId: string, props: Record<string, unknown>) => void;
   onUpdateRowProps: (rowId: string, props: Record<string, unknown>) => void;
@@ -53,6 +59,8 @@ const FONT_FAMILIES = [
 export function PropertiesPanel({
   doc,
   selectedTarget,
+  testDataJson,
+  onUpdateTestDataJson,
   onUpdateDocumentSettings,
   onUpdateSectionProps,
   onUpdateRowProps,
@@ -60,7 +68,45 @@ export function PropertiesPanel({
   onUpdateBlockProps,
   onClose,
 }: PropertiesPanelProps) {
+  const [panelTab, setPanelTab] = useState<'properties' | 'test-data'>('properties');
   const [showVarPicker, setShowVarPicker] = useState(false);
+  const [jsonError, setJsonError] = useState<string | null>(null);
+
+  // Validate JSON on change
+  const handleJsonChange = (val: string) => {
+    onUpdateTestDataJson(val);
+    try {
+      JSON.parse(val);
+      setJsonError(null);
+    } catch (err) {
+      setJsonError(err instanceof Error ? err.message : 'Invalid JSON');
+    }
+  };
+
+  const handleFormatJson = () => {
+    try {
+      const parsed = JSON.parse(testDataJson);
+      onUpdateTestDataJson(JSON.stringify(parsed, null, 2));
+      setJsonError(null);
+    } catch {
+      // Ignore format if invalid
+    }
+  };
+
+  const handleResetSamplePayload = () => {
+    const sample = JSON.stringify(
+      {
+        order: {
+          id: '1234',
+          name: 'test user',
+        },
+      },
+      null,
+      2
+    );
+    onUpdateTestDataJson(sample);
+    setJsonError(null);
+  };
 
   // Resolve selected node
   let targetType: 'document' | 'section' | 'row' | 'column' | 'block' = 'document';
@@ -130,25 +176,92 @@ export function PropertiesPanel({
 
   return (
     <div className="w-80 bg-zinc-900 border-l border-zinc-800 flex flex-col h-full overflow-y-auto select-none">
-      {/* Header */}
-      <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Settings className="w-4 h-4 text-indigo-400" />
-          <h3 className="text-xs font-bold text-zinc-100 uppercase tracking-wider">
-            {targetType === 'document' ? 'Document Settings' : `${targetType} Properties`}
-          </h3>
+      {/* Header Tab Switcher */}
+      <div className="p-3 border-b border-zinc-800 bg-zinc-950 flex items-center justify-between gap-2">
+        <div className="flex items-center bg-zinc-900 p-1 rounded-lg border border-zinc-800 flex-1">
+          <button
+            type="button"
+            onClick={() => setPanelTab('properties')}
+            className={`flex-1 py-1 px-2 rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+              panelTab === 'properties'
+                ? 'bg-indigo-500/20 text-indigo-300 border border-indigo-500/40'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Settings className="w-3.5 h-3.5" />
+            <span>Properties</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setPanelTab('test-data')}
+            className={`flex-1 py-1 px-2 rounded-md text-xs font-semibold flex items-center justify-center gap-1.5 transition-colors ${
+              panelTab === 'test-data'
+                ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40'
+                : 'text-zinc-400 hover:text-zinc-200'
+            }`}
+          >
+            <Code2 className="w-3.5 h-3.5" />
+            <span>Test Data</span>
+          </button>
         </div>
         <button
           onClick={onClose}
-          className="p-1 text-zinc-400 hover:text-zinc-200 rounded transition-colors"
+          className="p-1.5 text-zinc-400 hover:text-zinc-200 rounded-lg bg-zinc-900 border border-zinc-800 transition-colors"
           title="Close Properties Panel"
         >
           <X className="w-4 h-4" />
         </button>
       </div>
 
-      <div className="p-4 space-y-6 flex-1">
-        {/* Document Settings */}
+      {panelTab === 'test-data' ? (
+        <div className="p-4 space-y-4 flex-1 flex flex-col">
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">Test Payload (JSON)</h3>
+              {jsonError ? (
+                <Badge variant="warning" size="sm" dot={false}>
+                  Syntax Error
+                </Badge>
+              ) : (
+                <Badge variant="success" size="sm" dot={false}>
+                  Valid JSON
+                </Badge>
+              )}
+            </div>
+            <p className="text-[11px] text-zinc-400 leading-relaxed">
+              Write your test JSON object below (e.g. <code className="text-purple-300">{`{ "order": { "name": "test user" } }`}</code>). Widget variables like <code className="text-purple-300">{"{{order.name}}"}</code> will evaluate against this payload.
+            </p>
+          </div>
+
+          <div className="flex-1 flex flex-col space-y-2">
+            <textarea
+              value={testDataJson}
+              onChange={(e) => handleJsonChange(e.target.value)}
+              className="w-full flex-1 p-3 bg-zinc-950 border border-zinc-800 rounded-xl font-mono text-xs text-emerald-300/90 focus:outline-none focus:border-zinc-700 resize-none leading-relaxed min-h-[300px]"
+              placeholder={`{\n  "order": {\n    "id": "1234",\n    "name": "test user"\n  }\n}`}
+              spellCheck={false}
+            />
+
+            {jsonError && (
+              <div className="flex items-center gap-1.5 p-2 bg-rose-500/10 border border-rose-500/20 text-rose-300 text-[11px] rounded-lg">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+                <span className="truncate">{jsonError}</span>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
+            <Button size="sm" variant="outline" onClick={handleFormatJson} leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}>
+              Format JSON
+            </Button>
+            <Button size="sm" variant="ghost" onClick={handleResetSamplePayload} leftIcon={<RotateCcw className="w-3.5 h-3.5 text-zinc-400" />}>
+              Reset Sample
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 space-y-6 flex-1">
+          {/* Document Settings */}
         {targetType === 'document' && (
           <div className="space-y-4">
             <Input
@@ -323,6 +436,7 @@ export function PropertiesPanel({
                 {showVarPicker && (
                   <div className="absolute top-10 left-0 z-50">
                     <VariablePickerPopover
+                      testDataJson={testDataJson}
                       onSelectVariable={handleVariableInsert}
                       onClose={() => setShowVarPicker(false)}
                     />
@@ -554,6 +668,7 @@ export function PropertiesPanel({
           </div>
         )}
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 }

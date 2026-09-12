@@ -13,6 +13,8 @@ import {
   Redo2,
   Save,
   Send,
+  Variable,
+  Layout,
 } from 'lucide-react';
 
 export interface BuilderTopBarProps {
@@ -43,6 +45,7 @@ export function BuilderTopBar({
   onSubjectChange,
   deviceView,
   onDeviceViewChange,
+  viewTab,
   onViewTabChange,
   canUndo,
   canRedo,
@@ -101,39 +104,43 @@ export function BuilderTopBar({
         </div>
       </div>
 
-      {/* Middle section: Device & View Mode Tabs */}
+      {/* Middle section: Navigation Tabs & Device Switcher */}
       <div className="flex items-center gap-2">
-        {/* Device Switcher */}
-        <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-800">
-          <button
-            type="button"
-            onClick={() => onDeviceViewChange('desktop')}
-            className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-              deviceView === 'desktop'
-                ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-            title="Desktop View (600px)"
-          >
-            <Monitor className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Desktop</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onDeviceViewChange('mobile')}
-            className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-              deviceView === 'mobile'
-                ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
-                : 'text-zinc-400 hover:text-zinc-200'
-            }`}
-            title="Mobile View (360px)"
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Mobile</span>
-          </button>
-        </div>
 
-        {/* View Mode Buttons */}
+
+        {/* Device Switcher */}
+        {viewTab === 'design' && (
+          <div className="flex items-center bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+            <button
+              type="button"
+              onClick={() => onDeviceViewChange('desktop')}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                deviceView === 'desktop'
+                  ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+              title="Desktop View (600px)"
+            >
+              <Monitor className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Desktop</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => onDeviceViewChange('mobile')}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
+                deviceView === 'mobile'
+                  ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
+                  : 'text-zinc-400 hover:text-zinc-200'
+              }`}
+              title="Mobile View (360px)"
+            >
+              <Smartphone className="w-3.5 h-3.5" />
+              <span className="hidden sm:inline">Mobile</span>
+            </button>
+          </div>
+        )}
+
+        {/* Preview & HTML Modals */}
         <Button variant="outline" size="sm" onClick={() => onViewTabChange('preview')} leftIcon={<Eye className="w-3.5 h-3.5 text-emerald-400" />}>
           Preview
         </Button>

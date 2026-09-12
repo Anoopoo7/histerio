@@ -1,22 +1,25 @@
-'use client';
-
-import React, { useState } from 'react';
-import { COMMON_VARIABLES, isValidVariablePath } from '../utils/variableUtils';
+import React, { useState, useMemo } from 'react';
+import { COMMON_VARIABLES, getPathsFromObject, isValidVariablePath } from '../utils/variableUtils';
 import { Button, Input } from '@/components/ui';
 import { Variable, Plus, Tag, Check } from 'lucide-react';
 
 export interface VariablePickerPopoverProps {
+  testDataJson?: string;
   onSelectVariable: (varTag: string) => void;
   onClose?: () => void;
 }
 
-export function VariablePickerPopover({ onSelectVariable, onClose }: VariablePickerPopoverProps) {
+export function VariablePickerPopover({
+  testDataJson,
+  onSelectVariable,
+  onClose,
+}: VariablePickerPopoverProps) {
   const [customPath, setCustomPath] = useState('');
   const [customError, setCustomError] = useState('');
   const [copiedTag, setCopiedTag] = useState('');
 
-  const handleSelect = (path: string) => {
-    const tag = `{{${path}}}`;
+  const handleSelect = (rawTagOrPath: string) => {
+    const tag = rawTagOrPath.startsWith('{') ? rawTagOrPath : `{{${rawTagOrPath}}}`;
     onSelectVariable(tag);
     setCopiedTag(tag);
     setTimeout(() => {
@@ -31,13 +34,28 @@ export function VariablePickerPopover({ onSelectVariable, onClose }: VariablePic
     if (!trimmed) return;
 
     if (!isValidVariablePath(trimmed)) {
-      setCustomError('Invalid path format. Use letters, numbers, and dots (e.g. order.shipping.city)');
+      setCustomError('Invalid format. Use letters, numbers, and dots (e.g. invoice.payment.id)');
       return;
     }
 
     setCustomError('');
     handleSelect(trimmed);
   };
+
+  const activeVars = useMemo(() => {
+    if (testDataJson) {
+      try {
+        const parsed = JSON.parse(testDataJson);
+        const paths = getPathsFromObject(parsed);
+        if (paths.length > 0) {
+          return paths.map((p) => ({ path: p, label: p }));
+        }
+      } catch {
+        // Fallback to common variables
+      }
+    }
+    return COMMON_VARIABLES.map((v) => ({ path: v.path, label: v.label }));
+  }, [testDataJson]);
 
   return (
     <div className="w-80 p-3 bg-zinc-900 border border-zinc-700/80 rounded-xl shadow-2xl space-y-3 text-xs text-zinc-200">
@@ -48,12 +66,12 @@ export function VariablePickerPopover({ onSelectVariable, onClose }: VariablePic
         </div>
       </div>
 
-      {/* Common Quick Pick Variables */}
+      {/* Custom & Common Variables Section */}
       <div className="space-y-1 max-h-48 overflow-y-auto pr-1">
         <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block mb-1">
-          Known Variables
+          Available Variables ({activeVars.length})
         </span>
-        {COMMON_VARIABLES.map((v) => (
+        {activeVars.map((v) => (
           <button
             key={v.path}
             type="button"
@@ -73,16 +91,17 @@ export function VariablePickerPopover({ onSelectVariable, onClose }: VariablePic
             )}
           </button>
         ))}
+
       </div>
 
-      {/* Custom Variable Input Section */}
+      {/* Custom Variable Path Input Section */}
       <form onSubmit={handleAddCustom} className="pt-2 border-t border-zinc-800 space-y-2">
         <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block">
-          Custom Variable Path
+          Custom Path or Expression
         </span>
         <div className="flex gap-2">
           <Input
-            placeholder="e.g. invoice.payment.id"
+            placeholder="e.g. invoice.id"
             value={customPath}
             onChange={(e) => {
               setCustomPath(e.target.value);

@@ -21,8 +21,11 @@ import {
   BuilderDocument,
   BuilderRow,
   BuilderSection,
+  ButtonProps,
+  HeadingProps,
   LayoutType,
   SelectedTarget,
+  TextProps,
 } from '../model/types';
 import { validateBuilderDocument } from '../model/validation';
 import { generateEmailHtml } from '../renderer/renderEmail';
@@ -38,6 +41,8 @@ import { HtmlViewerModal } from './HtmlViewerModal';
 import { Modal, Input, Button } from '@/components/ui';
 import { testSmtpApi } from '@/lib/api/smtp.api';
 
+import { DEFAULT_MOCK_DATA_JSON } from '../utils/variableUtils';
+
 export interface VisualEmailBuilderProps {
   template: Template;
   initialVersionDetail?: TemplateVersionDetail | null;
@@ -46,6 +51,8 @@ export interface VisualEmailBuilderProps {
 
 export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: VisualEmailBuilderProps) {
   const { addToast } = useToast();
+
+  const [sampleJson, setSampleJson] = useState(DEFAULT_MOCK_DATA_JSON);
 
   // Initialize document AST from initialVersionDetail.builderContent or fallback to default
   const initialDoc = useMemo(() => {
@@ -172,6 +179,80 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
     });
 
     setSelectedTarget({ type: 'block', id: newBlock.id, columnId: '', rowId: '', sectionId: '' });
+  };
+
+  // Insert Dynamic Preset Snippet (recursive items table, customer greeting, receipt callout)
+  const handleAddPresetSnippet = (snippetType: 'order-summary-table' | 'customer-greeting' | 'receipt-callout' | 'product-card') => {
+    handleDocChange((prev) => {
+      let newSection: BuilderSection;
+
+      if (snippetType === 'customer-greeting') {
+        const heading = createBlock('heading');
+        (heading.props as HeadingProps).text = 'Welcome {{customer.name}}!';
+        (heading.props as HeadingProps).level = 'h2';
+
+        const subtext = createBlock('text');
+        (subtext.props as TextProps).content = 'Thank you for your order #{{order.id}}. Your order status is currently {{order.status}}. Order Date: {{order.date}}.';
+
+        newSection = createSection([createOneColumnRow([heading, subtext])]);
+      } else if (snippetType === 'receipt-callout') {
+        const heading = createBlock('heading');
+        (heading.props as HeadingProps).text = 'Grand Total Paid: {{order.total}}';
+        (heading.props as HeadingProps).level = 'h3';
+        (heading.props as HeadingProps).color = '#4f46e5';
+
+        const button = createBlock('button');
+        (button.props as ButtonProps).text = 'View Order #{{order.id}}';
+        (button.props as ButtonProps).url = 'https://example.com/orders/{{order.id}}';
+
+        newSection = createSection([createOneColumnRow([heading, button])]);
+      } else {
+        // order-summary-table
+        const tableBlock = createBlock('text');
+        (tableBlock.props as TextProps).content = `
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; margin: 12px 0; font-size: 14px; color: #374151; width: 100%;">
+  <thead>
+    <tr style="background-color: #f3f4f6; border-bottom: 2px solid #e5e7eb; text-align: left;">
+      <th style="padding: 10px; font-weight: 600;">Item Name</th>
+      <th style="padding: 10px; font-weight: 600; text-align: center;">Qty</th>
+      <th style="padding: 10px; font-weight: 600; text-align: right;">Price</th>
+      <th style="padding: 10px; font-weight: 600; text-align: right;">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each order.items}}
+    <tr style="border-bottom: 1px solid #f3f4f6;">
+      <td style="padding: 10px; font-weight: 500;">{{this.name}}</td>
+      <td style="padding: 10px; text-align: center;">{{this.quantity}}</td>
+      <td style="padding: 10px; text-align: right;">{{this.price}}</td>
+      <td style="padding: 10px; text-align: right; font-weight: 600;">{{this.total}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="3" style="padding: 10px; text-align: right; font-weight: 600; color: #6b7280;">Subtotal:</td>
+      <td style="padding: 10px; text-align: right; font-weight: 600;">{{order.subtotal}}</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="padding: 10px; text-align: right; font-weight: 600; color: #6b7280;">Shipping:</td>
+      <td style="padding: 10px; text-align: right; font-weight: 600;">{{order.shipping}}</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="padding: 10px; text-align: right; font-weight: 700; color: #111827; font-size: 16px;">Grand Total:</td>
+      <td style="padding: 10px; text-align: right; font-weight: 700; color: #4f46e5; font-size: 16px;">{{order.total}}</td>
+    </tr>
+  </tfoot>
+</table>`.trim();
+
+        newSection = createSection([createOneColumnRow([tableBlock])]);
+      }
+
+      return {
+        ...prev,
+        children: [...prev.children, newSection],
+      };
+    });
   };
 
   // Document Settings updates
@@ -493,6 +574,7 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
           onStartDrag={(item, e) => startDrag(item, e)}
           onAddLayout={handleAddLayout}
           onAddBlock={handleAddBlock}
+          onAddPresetSnippet={handleAddPresetSnippet}
         />
 
         {/* Center: Email Editing Canvas */}
@@ -500,6 +582,7 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
           doc={doc}
           selectedTarget={selectedTarget}
           deviceView={deviceView}
+          testDataJson={sampleJson}
           onSelectTarget={setSelectedTarget}
           onUpdateRowColumns={handleUpdateRowColumns}
           onUpdateBlockProps={handleUpdateBlockProps}
@@ -517,6 +600,8 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
           <PropertiesPanel
             doc={doc}
             selectedTarget={selectedTarget}
+            testDataJson={sampleJson}
+            onUpdateTestDataJson={setSampleJson}
             onUpdateDocumentSettings={handleUpdateDocumentSettings}
             onUpdateSectionProps={handleUpdateSectionProps}
             onUpdateRowProps={handleUpdateRowProps}
@@ -532,6 +617,7 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
         isOpen={isPreviewOpen}
         onClose={() => setIsPreviewOpen(false)}
         html={compiledHtml}
+        sampleJson={sampleJson}
       />
 
       <HtmlViewerModal

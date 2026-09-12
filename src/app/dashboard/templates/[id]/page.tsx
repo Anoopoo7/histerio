@@ -55,28 +55,67 @@ export default function CodeTemplateEditorPage() {
 
   useEffect(() => {
     let isMounted = true;
-    getTemplateByIdApi(templateId).then(async (tpl) => {
-      if (!isMounted) return;
-      setTemplate(tpl);
-      setSubject(tpl.subject);
 
-      if (tpl.currentVersion) {
-        try {
-          const verDetail = await getTemplateVersionByNumberApi(
-            templateId,
-            tpl.currentVersion.version
+    Promise.all([
+      getTemplateByIdApi(templateId),
+      getTemplateVersionsApi(templateId).catch(() => []),
+    ])
+      .then(async ([tpl, versions]) => {
+        if (!isMounted) return;
+        setTemplate(tpl);
+        setSubject(tpl.subject);
+
+        // Determine active version:
+        // Priority 1: tpl.currentVersion.version (active version summary)
+        // Priority 2: version matching tpl.currentVersionId or isCurrent === true in versions list
+        let activeVersionNumber: number | null = null;
+
+        if (tpl.currentVersion && typeof tpl.currentVersion.version === 'number') {
+          activeVersionNumber = tpl.currentVersion.version;
+        } else if (tpl.currentVersionId && versions.length > 0) {
+          const activeVer = versions.find(
+            (v) => v.id === tpl.currentVersionId || v.isCurrent
           );
-          if (isMounted) {
-            setCurrentVersion(verDetail);
-            setHtml(verDetail.html);
+          if (activeVer) {
+            activeVersionNumber = activeVer.version;
           }
-        } catch {
-          // Version detail fetch fallback
+        } else if (versions.length > 0) {
+          const activeVer = versions.find((v) => v.isCurrent);
+          if (activeVer) {
+            activeVersionNumber = activeVer.version;
+          }
         }
-      } else {
-        try {
-          const versions = await getTemplateVersionsApi(templateId);
-          if (versions.length > 0 && isMounted) {
+
+        if (activeVersionNumber !== null) {
+          try {
+            const verDetail = await getTemplateVersionByNumberApi(
+              templateId,
+              activeVersionNumber
+            );
+            if (isMounted) {
+              setCurrentVersion(verDetail);
+              setHtml(verDetail.html);
+            }
+          } catch {
+            // Fallback if active version details fail
+            if (versions.length > 0 && isMounted) {
+              try {
+                const fallbackVer = await getTemplateVersionByNumberApi(
+                  templateId,
+                  versions[0].version
+                );
+                if (isMounted) {
+                  setCurrentVersion(fallbackVer);
+                  setHtml(fallbackVer.html);
+                }
+              } catch {
+                // Keep default HTML
+              }
+            }
+          }
+        } else if (versions.length > 0) {
+          // If no version is explicitly active, open the latest created version
+          try {
             const latestVer = versions[0];
             const verDetail = await getTemplateVersionByNumberApi(
               templateId,
@@ -86,15 +125,16 @@ export default function CodeTemplateEditorPage() {
               setCurrentVersion(verDetail);
               setHtml(verDetail.html);
             }
+          } catch {
+            // Keep default HTML
           }
-        } catch {
-          // Fallback
         }
-      }
-      setIsLoading(false);
-    }).catch(() => {
-      if (isMounted) setIsLoading(false);
-    });
+
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (isMounted) setIsLoading(false);
+      });
 
     return () => {
       isMounted = false;

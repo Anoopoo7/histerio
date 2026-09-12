@@ -11,7 +11,6 @@ import {
   Code2,
   Eye,
   Variable,
-  Sparkles,
   Terminal,
 } from 'lucide-react';
 import {
@@ -34,6 +33,7 @@ import {
 } from '@/components/ui';
 import { SendApiCodeModal } from '@/components/SendApiCodeModal';
 import { useToast } from '@/hooks/useToast';
+import { VisualEmailBuilder } from '@/features/email-builder/components/VisualEmailBuilder';
 
 export default function CodeTemplateEditorPage() {
   const params = useParams();
@@ -276,43 +276,14 @@ export default function CodeTemplateEditorPage() {
 
   if (template.editorType === 'BUILDER') {
     return (
-      <div className="space-y-6 max-w-4xl mx-auto">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard/templates">
-              <Button variant="outline" size="sm" leftIcon={<ArrowLeft className="w-4 h-4" />}>
-                Back
-              </Button>
-            </Link>
-            <div>
-              <h1 className="text-xl font-bold text-zinc-100">{template.name}</h1>
-              <p className="text-xs text-zinc-400">Visual Drag & Drop Builder Mode</p>
-            </div>
-          </div>
-          <Link href={`/dashboard/templates/${template.id}/versions`}>
-            <Button variant="outline" size="sm" leftIcon={<History className="w-4 h-4" />}>
-              Version History
-            </Button>
-          </Link>
-        </div>
-
-        <Card className="p-12 text-center bg-purple-500/5 border-purple-500/20">
-          <div className="p-4 bg-purple-500/10 text-purple-400 rounded-full w-16 h-16 mx-auto mb-4 flex items-center justify-center">
-            <Sparkles className="w-8 h-8" />
-          </div>
-          <h2 className="text-lg font-bold text-zinc-100">Visual Builder Placeholder</h2>
-          <p className="text-xs text-zinc-400 max-w-md mx-auto mt-2 leading-relaxed">
-            This template is set to <span className="font-semibold text-purple-400">BUILDER</span> mode. The full visual block editor is under development and scheduled for release.
-          </p>
-          <div className="mt-6 flex justify-center gap-3">
-            <Link href="/dashboard/templates/new">
-              <Button variant="outline" leftIcon={<Code2 className="w-4 h-4" />}>
-                Create New Code Template
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      </div>
+      <VisualEmailBuilder
+        template={template}
+        initialVersionDetail={currentVersion}
+        onSaved={async () => {
+          const reloaded = await getTemplateByIdApi(template.id);
+          setTemplate(reloaded);
+        }}
+      />
     );
   }
 

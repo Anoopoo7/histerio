@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Code2, Layout, Sparkles, AlertTriangle, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Code2, Layout, AlertTriangle, ArrowRight } from 'lucide-react';
 import { createTemplateApi, ApiError } from '@/lib/api';
 import { EditorType } from '@/types';
 import { Button, Input, Card, CardContent, Badge } from '@/components/ui';
@@ -162,15 +162,6 @@ export default function CreateTemplatePage() {
                   </p>
                 </div>
               </div>
-
-              {editorType === 'BUILDER' && (
-                <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300 flex items-center gap-2 mt-3">
-                  <Sparkles className="w-4 h-4 text-purple-400 shrink-0" />
-                  <span>
-                    Note: The Visual Builder placeholder is enabled. Full drag & drop features will be released in an upcoming update.
-                  </span>
-                </div>
-              )}
             </div>
 
             {/* Template Fields */}

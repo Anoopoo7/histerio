@@ -1,9 +1,33 @@
 export type EmailStatus = 'QUEUED' | 'PROCESSING' | 'SENT' | 'FAILED';
 
+export type EmailEventType =
+  | 'QUEUED'
+  | 'PROCESSING'
+  | 'SENT'
+  | 'DELIVERED'
+  | 'BOUNCED'
+  | 'OPENED'
+  | 'FAILED';
+
+export interface EmailTrackingStats {
+  opened: boolean;
+  openCount: number;
+  firstOpenedAt?: string | null;
+  lastOpenedAt?: string | null;
+  deliveredAt?: string | null;
+  bouncedAt?: string | null;
+}
+
 export interface EmailEventDetail {
-  event: string;
+  event: EmailEventType | string;
   timestamp: string;
-  details?: Record<string, unknown>;
+  details?: {
+    url?: string;
+    reason?: string;
+    error?: string;
+    messageId?: string;
+    [key: string]: unknown;
+  };
 }
 
 export interface EmailSummary {
@@ -18,6 +42,7 @@ export interface EmailSummary {
   error?: Record<string, unknown> | string | null;
   queuedAt: string;
   sentAt?: string | null;
+  tracking?: EmailTrackingStats;
 }
 
 export interface EmailDetail extends EmailSummary {

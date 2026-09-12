@@ -2,9 +2,10 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Mail, ArrowRight } from 'lucide-react';
+import { Search, Mail, ArrowRight, Eye, CheckCircle2, AlertTriangle, Send } from 'lucide-react';
 import { getEmailsApi } from '@/lib/api';
 import { EmailStatus, EmailSummary } from '@/types';
+import { formatDate } from '@/lib/utils/format';
 import {
   Input,
   Select,
@@ -43,19 +44,59 @@ export default function EmailsListPage() {
       limit,
       recipient: recipientSearch.trim() || undefined,
       status: (statusFilter as EmailStatus) || undefined,
-    }).then((res) => {
-      if (!isMounted) return;
-      setEmails(res.items);
-      setTotal(res.total);
-      setTotalPages(res.totalPages);
-      setIsLoading(false);
-    }).catch(() => {
-      if (isMounted) setIsLoading(false);
-    });
+    })
+      .then((res) => {
+        if (!isMounted) return;
+        setEmails(res.items);
+        setTotal(res.total);
+        setTotalPages(res.totalPages);
+        setIsLoading(false);
+      })
+      .catch(() => {
+        if (isMounted) setIsLoading(false);
+      });
     return () => {
       isMounted = false;
     };
   }, [currentOrg, page, limit, recipientSearch, statusFilter]);
+
+  const renderEngagementBadge = (email: EmailSummary) => {
+    const tracking = email.tracking;
+    if (tracking?.bouncedAt) {
+      return (
+        <Badge variant="error" size="sm" dot={false}>
+          <AlertTriangle className="w-3 h-3 mr-1 shrink-0" />
+          <span>Bounced</span>
+        </Badge>
+      );
+    }
+    if (tracking?.opened || (tracking?.openCount ?? 0) > 0) {
+      const openCount = tracking?.openCount ?? 1;
+      return (
+        <Badge variant="purple" size="sm" dot={false}>
+          <Eye className="w-3 h-3 mr-1 shrink-0 text-purple-400" />
+          <span>Opened{openCount > 1 ? ` (${openCount})` : ''}</span>
+        </Badge>
+      );
+    }
+    if (tracking?.deliveredAt) {
+      return (
+        <Badge variant="success" size="sm" dot={false}>
+          <CheckCircle2 className="w-3 h-3 mr-1 shrink-0 text-emerald-400" />
+          <span>Delivered</span>
+        </Badge>
+      );
+    }
+    if (email.status === 'SENT') {
+      return (
+        <Badge variant="neutral" size="sm" dot={false}>
+          <Send className="w-3 h-3 mr-1 shrink-0 text-zinc-400" />
+          <span>Sent</span>
+        </Badge>
+      );
+    }
+    return <span className="text-zinc-500 text-xs">—</span>;
+  };
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto">
@@ -63,7 +104,9 @@ export default function EmailsListPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
         <div>
           <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Transactional Email Logs</h1>
-          <p className="text-xs text-zinc-400 mt-1">Audit log of all dispatched transactional messages</p>
+          <p className="text-xs text-zinc-400 mt-1">
+            Audit log and engagement tracking for all dispatched transactional messages
+          </p>
         </div>
       </div>
 
@@ -106,7 +149,7 @@ export default function EmailsListPage() {
         <EmptyState
           icon={<Mail className="w-10 h-10 text-zinc-500" />}
           title="No email logs found"
-          description="Emails dispatched via the platform API will appear here."
+          description="Emails dispatched via the platform API will appear here with real-time tracking."
         />
       ) : (
         <div className="bg-zinc-900 border border-zinc-800 rounded-xl overflow-hidden shadow-xs">
@@ -116,9 +159,8 @@ export default function EmailsListPage() {
                 <TableHead>Recipient</TableHead>
                 <TableHead>Subject</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Attempts</TableHead>
+                <TableHead>Delivery / Engagement</TableHead>
                 <TableHead>Queued At</TableHead>
-                <TableHead>Sent At</TableHead>
                 <TableHead className="text-right">Action</TableHead>
               </TableRow>
             </TableHeader>
@@ -150,14 +192,9 @@ export default function EmailsListPage() {
                       {email.status}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs font-mono text-zinc-400">
-                    {email.attempts}
-                  </TableCell>
+                  <TableCell>{renderEngagementBadge(email)}</TableCell>
                   <TableCell className="text-xs text-zinc-400">
-                    {new Date(email.queuedAt).toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-xs text-zinc-400">
-                    {email.sentAt ? new Date(email.sentAt).toLocaleString() : '-'}
+                    {formatDate(email.queuedAt)}
                   </TableCell>
                   <TableCell className="text-right">
                     <span className="text-xs font-semibold text-indigo-400 hover:text-indigo-300 inline-flex items-center gap-1">

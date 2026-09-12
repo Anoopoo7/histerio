@@ -14,8 +14,8 @@ import {
   AlertTriangle,
   Terminal,
 } from 'lucide-react';
-import { getTemplatesApi, activateTemplateApi, archiveTemplateApi, ApiError } from '@/lib/api';
-import { EditorType, Template, TemplateStatus } from '@/types';
+import { getTemplatesApi, activateTemplateApi, archiveTemplateApi, getBillingUsage, ApiError } from '@/lib/api';
+import { EditorType, Template, TemplateStatus, UsageResponseDto } from '@/types';
 import {
   Button,
   Input,
@@ -42,6 +42,7 @@ export default function TemplatesListPage() {
   const router = useRouter();
 
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [usage, setUsage] = useState<UsageResponseDto | null>(null);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [total, setTotal] = useState(0);
@@ -60,19 +61,26 @@ export default function TemplatesListPage() {
 
   const loadTemplates = useCallback(async () => {
     if (!currentOrg) return;
-    setIsLoading(true);
     try {
-      const res = await getTemplatesApi({
-        page,
-        limit,
-        search: search.trim() || undefined,
-        status: (statusFilter as TemplateStatus) || undefined,
-        editorType: (editorTypeFilter as EditorType) || undefined,
-      });
+      const [res, usageRes] = await Promise.allSettled([
+        getTemplatesApi({
+          page,
+          limit,
+          search: search.trim() || undefined,
+          status: (statusFilter as TemplateStatus) || undefined,
+          editorType: (editorTypeFilter as EditorType) || undefined,
+        }),
+        getBillingUsage(),
+      ]);
 
-      setTemplates(res.items);
-      setTotal(res.total);
-      setTotalPages(res.totalPages);
+      if (res.status === 'fulfilled') {
+        setTemplates(res.value.items);
+        setTotal(res.value.total);
+        setTotalPages(res.value.totalPages);
+      }
+      if (usageRes.status === 'fulfilled') {
+        setUsage(usageRes.value);
+      }
     } catch {
       // Failed to load templates
     } finally {
@@ -81,27 +89,16 @@ export default function TemplatesListPage() {
   }, [currentOrg, page, limit, search, statusFilter, editorTypeFilter]);
 
   useEffect(() => {
-    let isMounted = true;
-    if (!currentOrg) return;
-    getTemplatesApi({
-      page,
-      limit,
-      search: search.trim() || undefined,
-      status: (statusFilter as TemplateStatus) || undefined,
-      editorType: (editorTypeFilter as EditorType) || undefined,
-    }).then((res) => {
-      if (!isMounted) return;
-      setTemplates(res.items);
-      setTotal(res.total);
-      setTotalPages(res.totalPages);
-      setIsLoading(false);
-    }).catch(() => {
-      if (isMounted) setIsLoading(false);
-    });
-    return () => {
-      isMounted = false;
+    let ignore = false;
+    const run = async () => {
+      if (!currentOrg || ignore) return;
+      await loadTemplates();
     };
-  }, [currentOrg, page, limit, search, statusFilter, editorTypeFilter]);
+    run();
+    return () => {
+      ignore = true;
+    };
+  }, [currentOrg, loadTemplates]);
 
   const handleActivate = async () => {
     if (!activateTarget) return;
@@ -154,7 +151,14 @@ export default function TemplatesListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Email Templates</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Email Templates</h1>
+            {usage && (
+              <Badge variant="purple" size="sm">
+                {usage.templateCount} / {usage.templateLimit} Used
+              </Badge>
+            )}
+          </div>
           <p className="text-xs text-zinc-400 mt-1">Manage, edit, and publish email templates</p>
         </div>
         <Link href="/dashboard/templates/new">

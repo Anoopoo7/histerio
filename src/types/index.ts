@@ -6,3 +6,4 @@ export * from './smtp';
 export * from './email';
 export * from './health';
 export * from './common';
+export * from './billing';

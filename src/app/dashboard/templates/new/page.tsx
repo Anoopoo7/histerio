@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Code2, Layout, Sparkles } from 'lucide-react';
+import { ArrowLeft, Code2, Layout, Sparkles, AlertTriangle, ArrowRight } from 'lucide-react';
 import { createTemplateApi, ApiError } from '@/lib/api';
 import { EditorType } from '@/types';
 import { Button, Input, Card, CardContent, Badge } from '@/components/ui';
@@ -20,6 +20,7 @@ export default function CreateTemplatePage() {
   const [editorType, setEditorType] = useState<EditorType>('CODE');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isLimitReached, setIsLimitReached] = useState(false);
 
   const handleNameChange = (val: string) => {
     setName(val);
@@ -42,6 +43,7 @@ export default function CreateTemplatePage() {
 
     setIsLoading(true);
     setError('');
+    setIsLimitReached(false);
 
     try {
       const template = await createTemplateApi({
@@ -61,7 +63,12 @@ export default function CreateTemplatePage() {
       router.push(`/dashboard/templates/${template.id}`);
     } catch (err) {
       if (err instanceof ApiError) {
-        setError(err.message);
+        if (err.code === 'TEMPLATE_LIMIT_REACHED' || err.statusCode === 403) {
+          setIsLimitReached(true);
+          setError('Template limit reached. Upgrade your plan to create more templates.');
+        } else {
+          setError(err.message);
+        }
       } else {
         setError('Failed to create template');
       }
@@ -88,11 +95,28 @@ export default function CreateTemplatePage() {
       <Card>
         <CardContent className="p-6 sm:p-8">
           <form onSubmit={handleSubmit} className="space-y-6">
-            {error && (
+            {isLimitReached ? (
+              <div className="p-4 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-300 text-xs space-y-3">
+                <div className="flex items-center gap-2 font-bold text-amber-200">
+                  <AlertTriangle className="w-4 h-4 text-amber-400" />
+                  <span>Template Limit Reached</span>
+                </div>
+                <p className="leading-relaxed">
+                  Your current subscription plan limit has been reached. Upgrade your plan to create additional email templates.
+                </p>
+                <div className="pt-1">
+                  <Link href="/dashboard/billing">
+                    <Button size="sm" rightIcon={<ArrowRight className="w-4 h-4" />}>
+                      View Billing & Upgrade Plan
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ) : error ? (
               <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-medium">
                 {error}
               </div>
-            )}
+            ) : null}
 
             {/* Editor Type Selector Cards */}
             <div className="space-y-2">
@@ -190,7 +214,7 @@ export default function CreateTemplatePage() {
                   Cancel
                 </Button>
               </Link>
-              <Button type="submit" isLoading={isLoading}>
+              <Button type="submit" isLoading={isLoading} disabled={isLimitReached}>
                 Create & Continue to Editor
               </Button>
             </div>

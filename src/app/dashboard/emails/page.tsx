@@ -3,8 +3,8 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Mail, ArrowRight, Eye, CheckCircle2, AlertTriangle, Send } from 'lucide-react';
-import { getEmailsApi } from '@/lib/api';
-import { EmailStatus, EmailSummary } from '@/types';
+import { getEmailsApi, getBillingUsage } from '@/lib/api';
+import { EmailStatus, EmailSummary, UsageResponseDto } from '@/types';
 import { formatDate } from '@/lib/utils/format';
 import {
   Input,
@@ -27,6 +27,7 @@ export default function EmailsListPage() {
   const router = useRouter();
 
   const [emails, setEmails] = useState<EmailSummary[]>([]);
+  const [usage, setUsage] = useState<UsageResponseDto | null>(null);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [total, setTotal] = useState(0);
@@ -39,22 +40,28 @@ export default function EmailsListPage() {
   useEffect(() => {
     let isMounted = true;
     if (!currentOrg) return;
-    getEmailsApi({
-      page,
-      limit,
-      recipient: recipientSearch.trim() || undefined,
-      status: (statusFilter as EmailStatus) || undefined,
-    })
-      .then((res) => {
-        if (!isMounted) return;
-        setEmails(res.items);
-        setTotal(res.total);
-        setTotalPages(res.totalPages);
-        setIsLoading(false);
-      })
-      .catch(() => {
-        if (isMounted) setIsLoading(false);
-      });
+
+    Promise.allSettled([
+      getEmailsApi({
+        page,
+        limit,
+        recipient: recipientSearch.trim() || undefined,
+        status: (statusFilter as EmailStatus) || undefined,
+      }),
+      getBillingUsage(),
+    ]).then(([emailsRes, usageRes]) => {
+      if (!isMounted) return;
+      if (emailsRes.status === 'fulfilled') {
+        setEmails(emailsRes.value.items);
+        setTotal(emailsRes.value.total);
+        setTotalPages(emailsRes.value.totalPages);
+      }
+      if (usageRes.status === 'fulfilled') {
+        setUsage(usageRes.value);
+      }
+      setIsLoading(false);
+    });
+
     return () => {
       isMounted = false;
     };
@@ -103,7 +110,14 @@ export default function EmailsListPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-6">
         <div>
-          <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Transactional Email Logs</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Transactional Email Logs</h1>
+            {usage && (
+              <Badge variant="info" size="sm">
+                Emails this month: {usage.emailsUsed.toLocaleString()} / {usage.emailLimit.toLocaleString()}
+              </Badge>
+            )}
+          </div>
           <p className="text-xs text-zinc-400 mt-1">
             Audit log and engagement tracking for all dispatched transactional messages
           </p>

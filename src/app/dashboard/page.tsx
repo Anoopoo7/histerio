@@ -14,6 +14,7 @@ import {
   ArrowRight,
   Activity,
   ShieldAlert,
+  CreditCard,
 } from 'lucide-react';
 import {
   getEmailsApi,
@@ -21,8 +22,10 @@ import {
   getApiKeysApi,
   getHealthApi,
   getSmtpApi,
+  getBillingSubscription,
+  getBillingUsage,
 } from '@/lib/api';
-import { EmailSummary, HealthStatus } from '@/types';
+import { EmailSummary, HealthStatus, SubscriptionResponseDto, UsageResponseDto } from '@/types';
 import {
   Card,
   Button,
@@ -53,6 +56,8 @@ export default function DashboardOverviewPage() {
 
   const [recentEmails, setRecentEmails] = useState<EmailSummary[]>([]);
   const [health, setHealth] = useState<HealthStatus | null>(null);
+  const [subscription, setSubscription] = useState<SubscriptionResponseDto | null>(null);
+  const [usage, setUsage] = useState<UsageResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -68,7 +73,9 @@ export default function DashboardOverviewPage() {
       getHealthApi(),
       getEmailsApi({ limit: 5, page: 1 }),
       getSmtpApi(),
-    ]).then(([sentRes, queuedRes, failedRes, templatesRes, apiKeysRes, healthRes, recentEmailsRes, smtpRes]) => {
+      getBillingSubscription(),
+      getBillingUsage(),
+    ]).then(([sentRes, queuedRes, failedRes, templatesRes, apiKeysRes, healthRes, recentEmailsRes, smtpRes, subRes, usageRes]) => {
       if (!isMounted) return;
       if (sentRes.status === 'fulfilled') setSentCount(sentRes.value.total);
       if (queuedRes.status === 'fulfilled') setQueuedCount(queuedRes.value.total);
@@ -79,6 +86,8 @@ export default function DashboardOverviewPage() {
       if (recentEmailsRes.status === 'fulfilled') setRecentEmails(recentEmailsRes.value.items);
       if (smtpRes.status === 'fulfilled') setSmtpConfigured(smtpRes.value.isConfigured);
       else setSmtpConfigured(false);
+      if (subRes.status === 'fulfilled') setSubscription(subRes.value);
+      if (usageRes.status === 'fulfilled') setUsage(usageRes.value);
       setIsLoading(false);
     });
     return () => {
@@ -194,6 +203,86 @@ export default function DashboardOverviewPage() {
           );
         })}
       </div>
+
+      {/* Billing & Quotas Summary Widget */}
+      {usage && (
+        <Card className="p-5 bg-gradient-to-r from-zinc-900 via-zinc-900 to-indigo-950/40 border-zinc-800">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-zinc-800/80 pb-4 mb-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="text-sm font-bold text-zinc-100">
+                    {subscription?.plan?.name || subscription?.planCode || 'FREE'} Plan
+                  </h3>
+                  <Badge variant={subscription?.status === 'ACTIVE' ? 'success' : 'purple'} size="sm">
+                    {subscription?.status || 'ACTIVE'}
+                  </Badge>
+                </div>
+                <p className="text-xs text-zinc-400">Current billing period quotas and consumption</p>
+              </div>
+            </div>
+            <Link href="/dashboard/billing">
+              <Button variant="outline" size="sm" rightIcon={<ArrowRight className="w-3.5 h-3.5" />}>
+                Manage Subscription
+              </Button>
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+            <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/60 space-y-1.5">
+              <span className="text-zinc-400 block font-medium">Emails Consumption</span>
+              <span className="font-mono text-zinc-100 font-bold text-sm">
+                {usage.emailsUsed.toLocaleString()} / {usage.emailLimit.toLocaleString()}
+              </span>
+              <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-1">
+                <div
+                  className="h-full bg-indigo-500 transition-all"
+                  style={{ width: `${Math.min(100, usage.usagePercent)}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/60 space-y-1.5">
+              <span className="text-zinc-400 block font-medium">Templates Used</span>
+              <span className="font-mono text-zinc-100 font-bold text-sm">
+                {usage.templateCount.toLocaleString()} / {usage.templateLimit.toLocaleString()}
+              </span>
+              <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-1">
+                <div
+                  className="h-full bg-purple-500 transition-all"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.round((usage.templateCount / Math.max(1, usage.templateLimit)) * 100)
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+
+            <div className="p-3 bg-zinc-950/60 rounded-xl border border-zinc-800/60 space-y-1.5">
+              <span className="text-zinc-400 block font-medium">Team Members</span>
+              <span className="font-mono text-zinc-100 font-bold text-sm">
+                {usage.memberCount.toLocaleString()} / {usage.memberLimit.toLocaleString()}
+              </span>
+              <div className="w-full bg-zinc-800 h-1.5 rounded-full overflow-hidden mt-1">
+                <div
+                  className="h-full bg-emerald-500 transition-all"
+                  style={{
+                    width: `${Math.min(
+                      100,
+                      Math.round((usage.memberCount / Math.max(1, usage.memberLimit)) * 100)
+                    )}%`,
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* System Health Status & Quick Actions Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

@@ -9,6 +9,7 @@ import {
   Mail,
   Key,
   Server,
+  CreditCard,
   LogOut,
   Zap,
   Activity,
@@ -41,6 +42,7 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
     { label: 'Emails', href: '/dashboard/emails', icon: Mail },
     { label: 'API Keys', href: '/dashboard/api-keys', icon: Key },
     { label: 'SMTP', href: '/dashboard/smtp', icon: Server },
+    { label: 'Billing', href: '/dashboard/billing', icon: CreditCard },
   ];
 
   const isActive = (href: string) => {

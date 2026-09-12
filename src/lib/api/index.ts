@@ -6,3 +6,4 @@ export * from './api-keys.api';
 export * from './smtp.api';
 export * from './emails.api';
 export * from './health.api';
+export * from './billing.api';

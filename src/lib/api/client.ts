@@ -17,7 +17,7 @@ export class ApiError extends Error {
   }
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api/proxy';
 const TOKEN_KEY = 'histeria_jwt_token';
 const ORG_KEY = 'histeria_selected_org_id';
 
@@ -65,7 +65,9 @@ interface FetchOptions extends RequestInit {
 export async function request<T>(endpoint: string, options: FetchOptions = {}): Promise<T> {
   const { orgId, skipOrgHeader = false, skipAuthToken = false, params, headers: customHeaders, ...restOptions } = options;
 
-  let url = `${BASE_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  let url = endpoint.startsWith('http')
+    ? endpoint
+    : `${BASE_URL.replace(/\/+$/, '')}/${endpoint.replace(/^\/+/, '')}`;
 
   if (params) {
     const searchParams = new URLSearchParams();

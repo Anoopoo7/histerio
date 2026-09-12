@@ -24,10 +24,16 @@ export default function PublicPricingPage() {
   const { addToast } = useToast();
   const router = useRouter();
 
+  const [mounted, setMounted] = useState(false);
   const [plans, setPlans] = useState<PlanResponseDto[]>([]);
   const [subscription, setSubscription] = useState<SubscriptionResponseDto | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [checkoutPlanCode, setCheckoutPlanCode] = useState<PlanCode | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let ignore = false;
@@ -105,7 +111,7 @@ export default function PublicPricingPage() {
       await openRazorpayCheckout({
         keyId: checkoutSession.razorpayKeyId,
         subscriptionId: checkoutSession.subscriptionId,
-        planName: plan.name,
+        planName: plan.code,
         userName: user?.name,
         userEmail: user?.email,
         onSuccess: async (rzpRes) => {
@@ -114,7 +120,6 @@ export default function PublicPricingPage() {
               razorpaySubscriptionId: rzpRes.razorpay_subscription_id,
               razorpayPaymentId: rzpRes.razorpay_payment_id,
               razorpaySignature: rzpRes.razorpay_signature,
-              razorpayOrderId: rzpRes.razorpay_order_id,
             });
 
             if (confirmedSub.status === 'ACTIVE') {
@@ -127,11 +132,9 @@ export default function PublicPricingPage() {
               addToast({
                 type: 'info',
                 title: 'Payment Received',
-                message: 'Payment received. Confirming subscription status...',
+                message: 'Your payment was received. Subscription activation is pending confirmation.',
               });
             }
-
-            setSubscription(confirmedSub);
             router.push('/dashboard/billing');
           } catch (err) {
             if (err instanceof ApiError) {
@@ -144,7 +147,7 @@ export default function PublicPricingPage() {
               addToast({
                 type: 'error',
                 title: 'Verification Failed',
-                message: 'Payment completed but confirmation failed. Please contact support.',
+                message: 'Failed to verify payment signature with backend.',
               });
             }
           } finally {
@@ -203,18 +206,23 @@ export default function PublicPricingPage() {
         </Link>
 
         <div className="flex items-center gap-4">
-          {isAuthenticated ? (
-            <Link href="/dashboard">
-              <Button leftIcon={<LayoutDashboard className="w-4 h-4" />}>Go to Dashboard</Button>
-            </Link>
+          {!mounted ? (
+            <div className="w-28 h-9 bg-zinc-900/60 animate-pulse rounded-lg" />
+          ) : isAuthenticated ? (
+            <Button
+              leftIcon={<LayoutDashboard className="w-4 h-4" />}
+              onClick={() => router.push('/dashboard')}
+            >
+              Go to Dashboard
+            </Button>
           ) : (
             <>
               <Link href="/login" className="text-xs font-semibold text-zinc-300 hover:text-zinc-100 px-3 py-2">
                 Sign In
               </Link>
-              <Link href="/register">
-                <Button size="sm">Get Started</Button>
-              </Link>
+              <Button size="sm" onClick={() => router.push('/register')}>
+                Get Started
+              </Button>
             </>
           )}
         </div>

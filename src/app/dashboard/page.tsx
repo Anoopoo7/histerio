@@ -65,31 +65,69 @@ export default function DashboardOverviewPage() {
     if (!currentOrg) return;
 
     Promise.allSettled([
-      getEmailsApi({ limit: 1, status: 'SENT' }),
-      getEmailsApi({ limit: 1, status: 'QUEUED' }),
-      getEmailsApi({ limit: 1, status: 'FAILED' }),
+      getEmailsApi({ limit: 100, page: 1 }),
       getTemplatesApi({ limit: 1 }),
       getApiKeysApi(),
       getHealthApi(),
-      getEmailsApi({ limit: 5, page: 1 }),
       getSmtpApi(),
       getBillingSubscription(),
       getBillingUsage(),
-    ]).then(([sentRes, queuedRes, failedRes, templatesRes, apiKeysRes, healthRes, recentEmailsRes, smtpRes, subRes, usageRes]) => {
+    ]).then(([emailsRes, templatesRes, apiKeysRes, healthRes, smtpRes, subRes, usageRes]) => {
       if (!isMounted) return;
-      if (sentRes.status === 'fulfilled') setSentCount(sentRes.value.total);
-      if (queuedRes.status === 'fulfilled') setQueuedCount(queuedRes.value.total);
-      if (failedRes.status === 'fulfilled') setFailedCount(failedRes.value.total);
-      if (templatesRes.status === 'fulfilled') setTemplatesCount(templatesRes.value.total);
-      if (apiKeysRes.status === 'fulfilled') setApiKeysCount(apiKeysRes.value.length);
-      if (healthRes.status === 'fulfilled') setHealth(healthRes.value);
-      if (recentEmailsRes.status === 'fulfilled') setRecentEmails(recentEmailsRes.value.items);
-      if (smtpRes.status === 'fulfilled') setSmtpConfigured(smtpRes.value.isConfigured);
-      else setSmtpConfigured(false);
-      if (subRes.status === 'fulfilled') setSubscription(subRes.value);
-      if (usageRes.status === 'fulfilled') setUsage(usageRes.value);
+
+      let calculatedSent = 0;
+      let calculatedQueued = 0;
+      let calculatedFailed = 0;
+
+      if (emailsRes.status === 'fulfilled') {
+        const items = emailsRes.value.items;
+        setRecentEmails(items.slice(0, 5));
+
+        calculatedSent = items.filter((e) =>
+          ['SENT', 'DELIVERED', 'OPENED', 'CLICKED'].includes(e.status)
+        ).length;
+
+        calculatedQueued = items.filter((e) =>
+          ['QUEUED', 'PROCESSING'].includes(e.status)
+        ).length;
+
+        calculatedFailed = items.filter((e) =>
+          ['FAILED', 'BOUNCED'].includes(e.status)
+        ).length;
+      }
+
+      if (usageRes.status === 'fulfilled') {
+        setUsage(usageRes.value);
+        const billingSent = usageRes.value.emailsUsed ?? 0;
+        setSentCount(Math.max(billingSent, calculatedSent));
+      } else {
+        setSentCount(calculatedSent);
+      }
+
+      setQueuedCount(calculatedQueued);
+      setFailedCount(calculatedFailed);
+
+      if (templatesRes.status === 'fulfilled') {
+        setTemplatesCount(templatesRes.value.total);
+      }
+      if (apiKeysRes.status === 'fulfilled') {
+        setApiKeysCount(apiKeysRes.value.length);
+      }
+      if (healthRes.status === 'fulfilled') {
+        setHealth(healthRes.value);
+      }
+      if (smtpRes.status === 'fulfilled') {
+        setSmtpConfigured(smtpRes.value.isConfigured);
+      } else {
+        setSmtpConfigured(false);
+      }
+      if (subRes.status === 'fulfilled') {
+        setSubscription(subRes.value);
+      }
+
       setIsLoading(false);
     });
+
     return () => {
       isMounted = false;
     };

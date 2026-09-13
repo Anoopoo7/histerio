@@ -5,6 +5,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import { GenericMessageResponse, LoginPayload, RegisterPayload, User } from '@/types';
 import {
   loginApi,
+  loginWithGoogleApi,
+  linkGoogleAccountApi,
+  unlinkGoogleAccountApi,
   registerApi,
   getStoredToken,
   setStoredToken,
@@ -19,6 +22,10 @@ interface AuthContextValue {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (payload: LoginPayload) => Promise<void>;
+  loginWithGoogle: (credential: string) => Promise<void>;
+  linkGoogle: (credential: string) => Promise<void>;
+  unlinkGoogle: () => Promise<void>;
+  updateUser: (updatedUser: User) => void;
   register: (payload: RegisterPayload) => Promise<GenericMessageResponse>;
   logout: () => void;
 }
@@ -62,6 +69,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     });
   }, [logout]);
 
+  const updateUser = useCallback((updatedUser: User) => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser));
+    }
+    setUser(updatedUser);
+  }, []);
+
   const login = async (payload: LoginPayload) => {
     const res = await loginApi(payload);
     setStoredToken(res.accessToken);
@@ -71,6 +85,41 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(res.accessToken);
     setUser(res.user);
     router.push('/dashboard');
+  };
+
+  const loginWithGoogle = async (credential: string) => {
+    const res = await loginWithGoogleApi({ credential });
+    setStoredToken(res.accessToken);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(USER_KEY, JSON.stringify(res.user));
+    }
+    setToken(res.accessToken);
+    setUser(res.user);
+    router.push('/dashboard');
+  };
+
+  const linkGoogle = async (credential: string) => {
+    const res = await linkGoogleAccountApi({ credential });
+    if (res.accessToken) {
+      setStoredToken(res.accessToken);
+      setToken(res.accessToken);
+    }
+    if (res.user) {
+      updateUser(res.user);
+    }
+  };
+
+  const unlinkGoogle = async () => {
+    await unlinkGoogleAccountApi();
+    if (user) {
+      const currentProviders = user.authProviders || [];
+      const updatedProviders = currentProviders.filter((p) => p !== 'google');
+      const updatedUser: User = {
+        ...user,
+        authProviders: updatedProviders,
+      };
+      updateUser(updatedUser);
+    }
   };
 
   const register = async (payload: RegisterPayload): Promise<GenericMessageResponse> => {
@@ -87,6 +136,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated,
         isLoading,
         login,
+        loginWithGoogle,
+        linkGoogle,
+        unlinkGoogle,
+        updateUser,
         register,
         logout,
       }}

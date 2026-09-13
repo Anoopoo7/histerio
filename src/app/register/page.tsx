@@ -9,8 +9,10 @@ import { useToast } from '@/hooks/useToast';
 import { Button, Input, Card, CardContent } from '@/components/ui';
 import { ApiError } from '@/lib/api';
 
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+
 export default function RegisterPage() {
-  const { register, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { register, loginWithGoogle, isAuthenticated, isLoading: authLoading } = useAuth();
   const { addToast } = useToast();
   const router = useRouter();
 
@@ -19,6 +21,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
   useEffect(() => {
@@ -89,6 +92,38 @@ export default function RegisterPage() {
     }
   };
 
+  const handleGoogleSuccess = async (credential: string) => {
+    setGoogleLoading(true);
+    setError('');
+
+    try {
+      await loginWithGoogle(credential);
+      addToast({
+        type: 'success',
+        title: 'Account Created',
+        message: 'Signed in with Google successfully!',
+      });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.statusCode === 409 || err.code === 'GOOGLE_ACCOUNT_EXISTS') {
+          setError(
+            'An account already exists with this email. Sign in with your password first, then connect Google from Account Settings.',
+          );
+        } else if (err.statusCode === 429) {
+          setError('Too many sign-in attempts. Please try again later.');
+        } else if (err.statusCode === 400) {
+          setError('Google registration could not be completed. Please try again.');
+        } else {
+          setError(err.message || 'Google registration could not be completed. Please try again.');
+        }
+      } else {
+        setError('Google registration could not be completed. Please try again.');
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
+
   if (authLoading) return null;
 
   return (
@@ -108,7 +143,7 @@ export default function RegisterPage() {
 
         {/* Card Form */}
         <Card className="border-zinc-800/80 shadow-2xl backdrop-blur-sm bg-zinc-900/90">
-          <CardContent className="p-6 sm:p-8">
+          <CardContent className="p-6 sm:p-8 space-y-5">
             <form onSubmit={handleSubmit} className="space-y-4">
               {error && (
                 <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-medium">
@@ -163,6 +198,7 @@ export default function RegisterPage() {
               <Button
                 type="submit"
                 isLoading={isLoading}
+                disabled={googleLoading}
                 className="w-full mt-2"
                 size="lg"
                 rightIcon={<ArrowRight className="w-4 h-4" />}
@@ -170,6 +206,25 @@ export default function RegisterPage() {
                 Create Account
               </Button>
             </form>
+
+            <div className="relative my-4">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-zinc-800" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-zinc-900/90 px-3 text-zinc-500 font-medium tracking-wider">
+                  OR
+                </span>
+              </div>
+            </div>
+
+            <GoogleSignInButton
+              text="signup_with"
+              isLoading={googleLoading}
+              disabled={isLoading}
+              onSuccess={handleGoogleSuccess}
+              onError={(msg) => setError(msg)}
+            />
           </CardContent>
         </Card>
 

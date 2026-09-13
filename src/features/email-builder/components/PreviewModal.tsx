@@ -16,12 +16,14 @@ export function PreviewModal({ isOpen, onClose, html, sampleJson: initialSampleJ
   const [device, setDevice] = useState<'desktop' | 'mobile'>('desktop');
   const [showJsonEditor, setShowJsonEditor] = useState(false);
   const [sampleJson, setSampleJson] = useState(initialSampleJson || DEFAULT_MOCK_DATA_JSON);
+  const [prevInitialJson, setPrevInitialJson] = useState(initialSampleJson);
 
-  React.useEffect(() => {
+  if (initialSampleJson !== prevInitialJson) {
+    setPrevInitialJson(initialSampleJson);
     if (initialSampleJson) {
       setSampleJson(initialSampleJson);
     }
-  }, [initialSampleJson]);
+  }
 
   const previewHtml = useMemo(() => {
     return replaceVariablesWithMockData(html, sampleJson);

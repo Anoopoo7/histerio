@@ -1,8 +1,11 @@
+export type AuthProviderType = 'password' | 'google';
+
 export interface User {
   id: string;
   email: string;
   name: string;
   emailVerified: boolean;
+  authProviders?: AuthProviderType[];
   createdAt: string;
   updatedAt: string;
 }
@@ -10,6 +13,10 @@ export interface User {
 export interface AuthResponse {
   accessToken: string;
   user: User;
+}
+
+export interface GoogleAuthPayload {
+  credential: string;
 }
 
 export interface LoginPayload {

@@ -14,6 +14,7 @@ import {
   Zap,
   Activity,
   CheckCircle2,
+  Settings,
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { getHealthApi } from '@/lib/api';
@@ -43,6 +44,7 @@ export function Sidebar({ onCloseMobile }: SidebarProps) {
     { label: 'API Keys', href: '/dashboard/api-keys', icon: Key },
     { label: 'SMTP', href: '/dashboard/smtp', icon: Server },
     { label: 'Billing', href: '/dashboard/billing', icon: CreditCard },
+    { label: 'Settings', href: '/dashboard/settings', icon: Settings },
   ];
 
   const isActive = (href: string) => {

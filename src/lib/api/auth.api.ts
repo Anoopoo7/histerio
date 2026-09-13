@@ -8,6 +8,7 @@ import {
   ForgotPasswordPayload,
   ResetPasswordPayload,
   GenericMessageResponse,
+  GoogleAuthPayload,
 } from '@/types';
 
 export async function registerApi(payload: RegisterPayload): Promise<GenericMessageResponse> {
@@ -25,6 +26,28 @@ export async function loginApi(payload: LoginPayload): Promise<AuthResponse> {
     body: JSON.stringify(payload),
     skipOrgHeader: true,
     skipAuthToken: true,
+  });
+}
+
+export async function loginWithGoogleApi(payload: GoogleAuthPayload): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/google', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+    skipOrgHeader: true,
+    skipAuthToken: true,
+  });
+}
+
+export async function linkGoogleAccountApi(payload: GoogleAuthPayload): Promise<AuthResponse> {
+  return request<AuthResponse>('/auth/google/link', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function unlinkGoogleAccountApi(): Promise<GenericMessageResponse> {
+  return request<GenericMessageResponse>('/auth/google/link', {
+    method: 'DELETE',
   });
 }
 

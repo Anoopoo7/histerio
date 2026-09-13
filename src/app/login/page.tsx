@@ -9,14 +9,17 @@ import { useToast } from '@/hooks/useToast';
 import { Button, Input, Card, CardContent } from '@/components/ui';
 import { ApiError, resendVerificationApi } from '@/lib/api';
 
+import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+
 export default function LoginPage() {
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated, isLoading: authLoading } = useAuth();
   const { addToast } = useToast();
   const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
 
   // Unverified state handling
@@ -73,6 +76,39 @@ export default function LoginPage() {
       }
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleGoogleSuccess = async (credential: string) => {
+    setGoogleLoading(true);
+    setError('');
+    setIsUnverified(false);
+
+    try {
+      await loginWithGoogle(credential);
+      addToast({
+        type: 'success',
+        title: 'Signed in with Google',
+        message: 'Welcome back to Histeria!',
+      });
+    } catch (err) {
+      if (err instanceof ApiError) {
+        if (err.statusCode === 409 || err.code === 'GOOGLE_ACCOUNT_EXISTS') {
+          setError(
+            'An account already exists with this email. Sign in with your password first, then connect Google from Account Settings.',
+          );
+        } else if (err.statusCode === 429) {
+          setError('Too many sign-in attempts. Please try again later.');
+        } else if (err.statusCode === 400) {
+          setError('Google sign-in could not be completed. Please try again.');
+        } else {
+          setError(err.message || 'Google sign-in could not be completed. Please try again.');
+        }
+      } else {
+        setError('Google sign-in could not be completed. Please try again.');
+      }
+    } finally {
+      setGoogleLoading(false);
     }
   };
 
@@ -167,55 +203,88 @@ export default function LoginPage() {
               </div>
             ) : (
               /* NORMAL LOGIN FORM */
-              <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
-                  <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-medium">
-                    {error}
-                  </div>
-                )}
+              <div className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {error && (
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-medium">
+                      {error}
+                      {error.includes('Sign in with your password first') && (
+                        <div className="mt-2">
+                          <button
+                            type="button"
+                            onClick={() => setError('')}
+                            className="text-xs font-semibold underline text-rose-300 hover:text-rose-200"
+                          >
+                            Back to password login
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
-                <Input
-                  label="Email Address"
-                  type="email"
-                  placeholder="name@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  leftIcon={<Mail className="w-4 h-4" />}
-                  required
-                  autoComplete="email"
-                />
-
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <label className="text-xs font-semibold text-zinc-300">Password</label>
-                    <Link
-                      href="/forgot-password"
-                      className="text-xs text-indigo-400 hover:text-indigo-300 font-medium hover:underline"
-                    >
-                      Forgot password?
-                    </Link>
-                  </div>
                   <Input
-                    type="password"
-                    placeholder="••••••••"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    leftIcon={<Lock className="w-4 h-4" />}
+                    label="Email Address"
+                    type="email"
+                    placeholder="name@company.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    leftIcon={<Mail className="w-4 h-4" />}
                     required
-                    autoComplete="current-password"
+                    autoComplete="email"
                   />
+
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-semibold text-zinc-300">Password</label>
+                      <Link
+                        href="/forgot-password"
+                        className="text-xs text-indigo-400 hover:text-indigo-300 font-medium hover:underline"
+                      >
+                        Forgot password?
+                      </Link>
+                    </div>
+                    <Input
+                      type="password"
+                      placeholder="••••••••"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      leftIcon={<Lock className="w-4 h-4" />}
+                      required
+                      autoComplete="current-password"
+                    />
+                  </div>
+
+                  <Button
+                    type="submit"
+                    isLoading={isLoading}
+                    disabled={googleLoading}
+                    className="w-full mt-2"
+                    size="lg"
+                    rightIcon={<ArrowRight className="w-4 h-4" />}
+                  >
+                    Sign In
+                  </Button>
+                </form>
+
+                <div className="relative my-4">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-zinc-800" />
+                  </div>
+                  <div className="relative flex justify-center text-xs uppercase">
+                    <span className="bg-zinc-900/90 px-3 text-zinc-500 font-medium tracking-wider">
+                      OR
+                    </span>
+                  </div>
                 </div>
 
-                <Button
-                  type="submit"
-                  isLoading={isLoading}
-                  className="w-full mt-2"
-                  size="lg"
-                  rightIcon={<ArrowRight className="w-4 h-4" />}
-                >
-                  Sign In
-                </Button>
-              </form>
+                <GoogleSignInButton
+                  text="continue_with"
+                  isLoading={googleLoading}
+                  disabled={isLoading}
+                  onSuccess={handleGoogleSuccess}
+                  onError={(msg) => setError(msg)}
+                />
+              </div>
             )}
           </CardContent>
         </Card>

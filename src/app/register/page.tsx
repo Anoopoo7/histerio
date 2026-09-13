@@ -127,106 +127,111 @@ export default function RegisterPage() {
   if (authLoading) return null;
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4">
-      {/* Background Glow */}
-      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500/10 blur-[120px] rounded-full pointer-events-none" />
+    <div className="min-h-screen bg-zinc-950 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+      {/* Dynamic Ambient Background Glow */}
+      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-gradient-to-tr from-purple-500/15 via-pink-500/10 to-indigo-500/15 blur-[140px] rounded-full pointer-events-none" />
+      <div className="absolute bottom-10 left-10 w-80 h-80 bg-purple-500/5 blur-[100px] rounded-full pointer-events-none" />
 
       <div className="w-full max-w-md space-y-6 relative z-10">
-        {/* Brand */}
+        {/* Brand Header */}
         <div className="text-center space-y-2">
-          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-xl shadow-indigo-500/20 mb-2">
+          <div className="inline-flex items-center justify-center w-13 h-13 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 text-white shadow-xl shadow-purple-500/25 mb-1 hover:scale-105 transition-transform duration-300">
             <Zap className="w-7 h-7 fill-current" />
           </div>
           <h1 className="text-2xl font-bold text-zinc-100 tracking-tight">Create your account</h1>
-          <p className="text-xs text-zinc-400">Start sending transactional emails in minutes</p>
+          <p className="text-xs text-zinc-400 font-medium">Start sending transactional emails in minutes</p>
         </div>
 
-        {/* Card Form */}
-        <Card className="border-zinc-800/80 shadow-2xl backdrop-blur-sm bg-zinc-900/90">
-          <CardContent className="p-6 sm:p-8 space-y-5">
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {error && (
-                <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-medium">
-                  {error}
+        {/* Premium Outer Card Wrapper with Subtle Gradient Border */}
+        <div className="p-[1px] rounded-2xl bg-gradient-to-b from-zinc-700/60 via-zinc-800/40 to-zinc-900/60 shadow-2xl shadow-black/80">
+          <Card className="border-0 shadow-none bg-zinc-950/90 backdrop-blur-xl rounded-2xl">
+            <CardContent className="p-6 sm:p-8 space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {error && (
+                  <div className="p-3.5 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-400 font-medium">
+                    {error}
+                  </div>
+                )}
+
+                <Input
+                  label="Full Name"
+                  placeholder="Jane Doe"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  leftIcon={<User className="w-4 h-4" />}
+                  required
+                  autoComplete="name"
+                />
+
+                <Input
+                  label="Email Address"
+                  type="email"
+                  placeholder="name@company.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  leftIcon={<Mail className="w-4 h-4" />}
+                  required
+                  autoComplete="email"
+                />
+
+                <Input
+                  label="Password"
+                  type="password"
+                  placeholder="At least 8 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  leftIcon={<Lock className="w-4 h-4" />}
+                  required
+                  autoComplete="new-password"
+                  helperText="Must be at least 8 characters"
+                />
+
+                <Input
+                  label="Confirm Password"
+                  type="password"
+                  placeholder="Repeat your password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  leftIcon={<Lock className="w-4 h-4" />}
+                  required
+                  autoComplete="new-password"
+                />
+
+                <Button
+                  type="submit"
+                  isLoading={isLoading}
+                  disabled={googleLoading}
+                  className="w-full mt-2"
+                  size="lg"
+                  rightIcon={<ArrowRight className="w-4 h-4" />}
+                >
+                  Create Account
+                </Button>
+              </form>
+
+              {/* Refined Divider */}
+              <div className="relative flex items-center justify-center my-6">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full h-[1px] bg-gradient-to-r from-transparent via-zinc-800 to-transparent" />
                 </div>
-              )}
-
-              <Input
-                label="Full Name"
-                placeholder="Jane Doe"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                leftIcon={<User className="w-4 h-4" />}
-                required
-                autoComplete="name"
-              />
-
-              <Input
-                label="Email Address"
-                type="email"
-                placeholder="name@company.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                leftIcon={<Mail className="w-4 h-4" />}
-                required
-                autoComplete="email"
-              />
-
-              <Input
-                label="Password"
-                type="password"
-                placeholder="At least 8 characters"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                leftIcon={<Lock className="w-4 h-4" />}
-                required
-                autoComplete="new-password"
-                helperText="Must be at least 8 characters"
-              />
-
-              <Input
-                label="Confirm Password"
-                type="password"
-                placeholder="Repeat your password"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                leftIcon={<Lock className="w-4 h-4" />}
-                required
-                autoComplete="new-password"
-              />
-
-              <Button
-                type="submit"
-                isLoading={isLoading}
-                disabled={googleLoading}
-                className="w-full mt-2"
-                size="lg"
-                rightIcon={<ArrowRight className="w-4 h-4" />}
-              >
-                Create Account
-              </Button>
-            </form>
-
-            <div className="relative my-4">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-zinc-800" />
+                <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-widest">
+                  <span className="bg-zinc-950/90 border border-zinc-800/80 px-3 py-1 rounded-full text-zinc-500 shadow-inner">
+                    OR
+                  </span>
+                </div>
               </div>
-              <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-zinc-900/90 px-3 text-zinc-500 font-medium tracking-wider">
-                  OR
-                </span>
-              </div>
-            </div>
 
-            <GoogleSignInButton
-              text="signup_with"
-              isLoading={googleLoading}
-              disabled={isLoading}
-              onSuccess={handleGoogleSuccess}
-              onError={(msg) => setError(msg)}
-            />
-          </CardContent>
-        </Card>
+              {/* Hyper-Premium Google Sign-In Button */}
+              <GoogleSignInButton
+                text="signup_with"
+                isLoading={googleLoading}
+                disabled={isLoading}
+                onSuccess={handleGoogleSuccess}
+                onError={(msg) => setError(msg)}
+              />
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Footer Link */}
         <p className="text-center text-xs text-zinc-400">

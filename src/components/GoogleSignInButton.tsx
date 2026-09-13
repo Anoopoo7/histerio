@@ -2,7 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useGoogleSignIn } from '@/hooks/useGoogleSignIn';
-import { Button } from '@/components/ui';
+import { Loader2 } from 'lucide-react';
 
 export interface GoogleSignInButtonProps {
   onSuccess: (credential: string) => void;
@@ -14,8 +14,8 @@ export interface GoogleSignInButtonProps {
   buttonText?: string;
 }
 
-export const GoogleGIcon: React.FC = () => (
-  <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0">
+export const GoogleGIcon: React.FC<{ className?: string }> = ({ className = 'w-5 h-5' }) => (
+  <svg viewBox="0 0 24 24" className={`${className} shrink-0`}>
     <path
       fill="#4285F4"
       d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -67,86 +67,85 @@ export const GoogleSignInButton: React.FC<GoogleSignInButtonProps> = ({
         text: text,
         shape: 'rectangular',
         logo_alignment: 'left',
-        width: containerRef.current.clientWidth || 360,
+        width: 400,
       });
     } catch {
       // Fallback handled gracefully
     }
   }, [isReady, text, isLoading]);
 
-  if (isLoading) {
-    return (
-      <Button
-        variant="secondary"
-        size="lg"
-        isLoading={true}
-        disabled={true}
-        className={`w-full ${className}`}
-      >
-        Signing in with Google...
-      </Button>
-    );
-  }
-
-  if (scriptLoading) {
-    return (
-      <Button
-        variant="secondary"
-        size="lg"
-        isLoading={true}
-        disabled={true}
-        className={`w-full ${className}`}
-      >
-        Preparing Google sign-in...
-      </Button>
-    );
-  }
-
-  if (isDisabled || isError) {
-    return (
-      <Button
-        variant="secondary"
-        size="lg"
-        disabled={true}
-        leftIcon={<GoogleGIcon />}
-        className={`w-full opacity-60 cursor-not-allowed ${className}`}
-      >
-        Google sign-in is currently unavailable
-      </Button>
-    );
-  }
-
   const label =
     buttonText ||
     (text === 'signin_with'
       ? 'Sign in with Google'
       : text === 'signup_with'
-      ? 'Sign up with Google'
-      : 'Continue with Google');
+        ? 'Sign up with Google'
+        : 'Continue with Google');
+
+  if (isLoading) {
+    return (
+      <div className={`w-full p-[1px] rounded-xl bg-gradient-to-r from-indigo-500/40 via-purple-500/40 to-pink-500/40 ${className}`}>
+        <div className="w-full h-11 px-4 flex items-center justify-center gap-3 bg-zinc-950 rounded-xl border border-white/5 text-zinc-300 font-medium text-sm">
+          <Loader2 className="w-4 h-4 animate-spin text-indigo-400" />
+          <span>Signing in with Google...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (scriptLoading) {
+    return (
+      <div className={`w-full p-[1px] rounded-xl bg-zinc-800 ${className}`}>
+        <div className="w-full h-11 px-4 flex items-center justify-center gap-3 bg-zinc-950 rounded-xl border border-white/5 text-zinc-400 font-medium text-sm">
+          <Loader2 className="w-4 h-4 animate-spin text-zinc-500" />
+          <span>Preparing Google sign-in...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (isDisabled || isError) {
+    return (
+      <div className={`w-full p-[1px] rounded-xl bg-zinc-850 opacity-60 cursor-not-allowed ${className}`}>
+        <div className="w-full h-11 px-4 flex items-center justify-center gap-3 bg-zinc-950 rounded-xl border border-white/5 text-zinc-500 font-medium text-sm">
+          <GoogleGIcon className="w-4 h-4 grayscale opacity-50" />
+          <span>Google sign-in is currently unavailable</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className={`w-full ${className}`}>
-      {/* GIS Official Container */}
-      <div
-        ref={containerRef}
-        className={`w-full flex justify-center items-center min-h-[44px] overflow-hidden rounded-xl ${
-          isReady ? 'block' : 'hidden'
-        }`}
-      />
-
-      {/* Fallback button when GIS script is not ready yet */}
-      {!isReady && (
-        <Button
-          type="button"
-          variant="secondary"
-          size="lg"
-          disabled={disabled}
-          onClick={promptSignIn}
-          leftIcon={<GoogleGIcon />}
-          className="w-full font-medium border-zinc-700/80 hover:border-zinc-600 bg-zinc-900 hover:bg-zinc-800 text-zinc-100"
+    <div className={`relative w-full group select-none cursor-pointer ${className}`}>
+      {/* Outer Gradient Glow Border Container */}
+      <div className="p-[1px] rounded-xl bg-gradient-to-b from-zinc-700/80 via-zinc-800/60 to-zinc-900/80 group-hover:from-indigo-500/60 group-hover:via-purple-500/40 group-hover:to-pink-500/60 transition-all duration-300 shadow-lg shadow-black/50 group-hover:shadow-[0_0_25px_-5px_rgba(99,102,241,0.35)]">
+        {/* Inner Glassmorphic Button Body */}
+        <div
+          className={`relative w-full h-11 px-4 flex items-center justify-center gap-3 bg-gradient-to-b from-zinc-900 via-zinc-900/95 to-zinc-950 group-hover:from-zinc-850 group-hover:to-zinc-900 rounded-xl border-t border-white/10 group-hover:border-white/20 transition-all duration-200 ${disabled ? 'opacity-50 pointer-events-none' : ''
+            }`}
         >
-          {label}
-        </Button>
+          {/* Subtle Accent Glow Ring */}
+          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-indigo-500/0 via-indigo-500/5 to-purple-500/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+          {/* Crisp Badge Container for Google G Icon */}
+          <div className="w-7 h-7 rounded-lg bg-zinc-950/80 border border-zinc-800 flex items-center justify-center shadow-inner group-hover:scale-105 group-hover:border-zinc-700 transition-all duration-200 shrink-0">
+            <GoogleGIcon className="w-4.5 h-4.5" />
+          </div>
+
+          {/* Button Label */}
+          <span className="text-sm font-semibold text-zinc-100 tracking-tight group-hover:text-white transition-colors">
+            {label}
+          </span>
+        </div>
+      </div>
+
+      {/* Invisible Interactive GIS Button Overlay */}
+      {isReady && (
+        <div
+          ref={containerRef}
+          onClick={promptSignIn}
+          className="absolute inset-0 w-full h-full opacity-[0.0001] z-10 cursor-pointer overflow-hidden flex items-center justify-center scale-125"
+        />
       )}
     </div>
   );

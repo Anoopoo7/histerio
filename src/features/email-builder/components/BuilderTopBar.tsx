@@ -114,11 +114,10 @@ export function BuilderTopBar({
             <button
               type="button"
               onClick={() => onDeviceViewChange('desktop')}
-              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                deviceView === 'desktop'
-                  ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${deviceView === 'desktop'
+                ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
+                : 'text-zinc-400 hover:text-zinc-200'
+                }`}
               title="Desktop View (600px)"
             >
               <Monitor className="w-3.5 h-3.5" />
@@ -127,11 +126,10 @@ export function BuilderTopBar({
             <button
               type="button"
               onClick={() => onDeviceViewChange('mobile')}
-              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                deviceView === 'mobile'
-                  ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
-                  : 'text-zinc-400 hover:text-zinc-200'
-              }`}
+              className={`p-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors ${deviceView === 'mobile'
+                ? 'bg-zinc-800 text-zinc-100 border border-zinc-700'
+                : 'text-zinc-400 hover:text-zinc-200'
+                }`}
               title="Mobile View (360px)"
             >
               <Smartphone className="w-3.5 h-3.5" />
@@ -173,7 +171,7 @@ export function BuilderTopBar({
 
         {onSendTestEmail && (
           <Button variant="outline" size="sm" onClick={onSendTestEmail} leftIcon={<Send className="w-3.5 h-3.5 text-indigo-400" />}>
-            Send Test
+            Send via API
           </Button>
         )}
 

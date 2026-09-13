@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Template, TemplateVersionDetail } from '@/types';
 import { createTemplateVersionApi, updateTemplateApi, ApiError } from '@/lib/api';
 import { useToast } from '@/hooks/useToast';
@@ -38,8 +38,7 @@ import { EmailCanvas } from './EmailCanvas';
 import { PropertiesPanel } from './PropertiesPanel';
 import { PreviewModal } from './PreviewModal';
 import { HtmlViewerModal } from './HtmlViewerModal';
-import { Modal, Input, Button } from '@/components/ui';
-import { testSmtpApi } from '@/lib/api/smtp.api';
+import { SendApiCodeModal } from '@/components/SendApiCodeModal';
 
 import { DEFAULT_MOCK_DATA_JSON } from '../utils/variableUtils';
 
@@ -74,8 +73,8 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [isHtmlOpen, setIsHtmlOpen] = useState(false);
   const [isTestEmailOpen, setIsTestEmailOpen] = useState(false);
-  const [testRecipient, setTestRecipient] = useState('');
-  const [isSendingTest, setIsSendingTest] = useState(false);
+
+  const [mockDataJson, setMockDataJson] = useState(DEFAULT_MOCK_DATA_JSON);
 
   const { startDrag } = usePointerDrag();
 
@@ -511,33 +510,6 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
     }
   };
 
-  // Send Test Email Action
-  const handleSendTestEmail = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!testRecipient.trim()) return;
-
-    setIsSendingTest(true);
-    try {
-      await testSmtpApi({
-        to: testRecipient.trim(),
-      });
-
-      addToast({
-        type: 'success',
-        title: 'Test Email Sent',
-        message: `Test email sent to ${testRecipient}`,
-      });
-      setIsTestEmailOpen(false);
-    } catch (err) {
-      if (err instanceof ApiError) {
-        addToast({ type: 'error', title: 'Send Failed', message: err.message });
-      } else {
-        addToast({ type: 'error', title: 'Error', message: 'Failed to send test email.' });
-      }
-    } finally {
-      setIsSendingTest(false);
-    }
-  };
 
   const compiledHtml = useMemo(() => generateEmailHtml(doc), [doc]);
 
@@ -626,37 +598,13 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
         html={compiledHtml}
       />
 
-      {/* Test Email Modal */}
-      <Modal
+      {/* Code Modal */}
+      <SendApiCodeModal
         isOpen={isTestEmailOpen}
         onClose={() => setIsTestEmailOpen(false)}
-        title="Send Test Email"
-        description="Send a real test email using the currently configured SMTP credentials."
-        footer={
-          <>
-            <Button variant="outline" onClick={() => setIsTestEmailOpen(false)} disabled={isSendingTest}>
-              Cancel
-            </Button>
-            <Button onClick={handleSendTestEmail} isLoading={isSendingTest}>
-              Send Test Email
-            </Button>
-          </>
-        }
-      >
-        <form onSubmit={handleSendTestEmail} className="space-y-4">
-          <Input
-            label="Recipient Email Address *"
-            type="email"
-            placeholder="you@example.com"
-            value={testRecipient}
-            onChange={(e) => setTestRecipient(e.target.value)}
-            required
-          />
-          <p className="text-xs text-zinc-400">
-            This will render the current template HTML and deliver it via your active organization SMTP configuration.
-          </p>
-        </form>
-      </Modal>
+        template={template}
+        sampleDataJson={mockDataJson}
+      />
     </div>
   );
 }

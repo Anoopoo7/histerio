@@ -31,7 +31,7 @@ export function SendApiCodeModal({
     }
   }, [sampleDataJson]);
 
-  const targetUrl = `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'}/v1/emails/send`;
+  const targetUrl = `${process.env.NEXT_PUBLIC_PROXY_URL || 'http://localhost:8080'}/v1/emails/send`;
   const templateIdentifier = template.slug || template.id;
 
   const payloads = useMemo(() => {
@@ -78,9 +78,9 @@ payload = ${JSON.stringify(
       null,
       4
     )
-      .replace(/true/g, 'True')
-      .replace(/false/g, 'False')
-      .replace(/null/g, 'None')}
+        .replace(/true/g, 'True')
+        .replace(/false/g, 'False')
+        .replace(/null/g, 'None')}
 
 response = requests.post(url, json=payload, headers=headers)
 print(response.status_code, response.json())`;
@@ -203,11 +203,10 @@ func main() {
                 <button
                   key={tab.id}
                   onClick={() => setActiveLang(tab.id)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
-                    isSelected
-                      ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/80 shadow-xs'
-                      : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
-                  }`}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${isSelected
+                    ? 'bg-zinc-800 text-zinc-100 border border-zinc-700/80 shadow-xs'
+                    : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/60'
+                    }`}
                 >
                   {tab.label}
                 </button>

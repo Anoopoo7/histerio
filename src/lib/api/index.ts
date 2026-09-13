@@ -7,3 +7,5 @@ export * from './smtp.api';
 export * from './emails.api';
 export * from './health.api';
 export * from './billing.api';
+export * from './legal.api';
+

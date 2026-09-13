@@ -1,0 +1,66 @@
+{
+  "documentType": "privacy",
+  "title": "Privacy Policy",
+  "shortSummary": "Explains data collection, processing purposes, email recipient data handling, and privacy rights.",
+  "version": "2026-01",
+  "effectiveDate": "2026-01-01",
+  "lastUpdated": "2026-09-13",
+  "isRequiredForRegistration": true,
+  "isRequiredForOrganization": false,
+  "status": "published",
+  "sections": [
+    {
+      "id": "overview",
+      "heading": "1. Overview & Data Categories",
+      "paragraphs": [
+        "This Privacy Policy explains how Histeria collects, processes, and protects personal data. We distinguish between Account Data (information used to manage your account) and Customer Email Data (recipient data submitted through our API).",
+        "We do not sell personal data or monetize recipient email addresses submitted to our platform."
+      ]
+    },
+    {
+      "id": "information-collected",
+      "heading": "2. Information We Collect",
+      "paragraphs": [
+        "We collect information in the following categories to provide email delivery and dashboard analytics:"
+      ],
+      "bullets": [
+        "Account Information: Name, email address, password hash, OAuth provider tokens, and email verification status.",
+        "Organization & API Data: Organization names, API key prefixes, and SMTP configuration parameters.",
+        "Transactional Email Data: Recipient email addresses, email subjects, variable payloads, delivery event logs, and status (Queued, Sent, Delivered, Bounced, Failed).",
+        "Email Tracking Data: Open events (via transparent tracking pixels) and link click events when enabled.",
+        "Billing Information: Subscription plan selection, transaction records, and Razorpay checkout metadata (payment card data is handled directly by Razorpay)."
+      ]
+    },
+    {
+      "id": "processing-purposes",
+      "heading": "3. Purposes of Processing",
+      "paragraphs": [
+        "We process collected information for legitimate business purposes including: authenticating users, operating the email queue, executing SMTP delivery, maintaining audit logs, measuring quota usage, detecting spam and abuse, and processing payments."
+      ]
+    },
+    {
+      "id": "email-recipient-data",
+      "heading": "4. Customer Recipient Data Processing",
+      "paragraphs": [
+        "When you transmit recipient data to Histeria via our REST API, Histeria acts as a data processor processing recipient data strictly according to your instructions.",
+        "Customers are responsible for ensuring appropriate legal basis and consent for sending transactional communications to their end-user recipients."
+      ]
+    },
+    {
+      "id": "data-retention",
+      "heading": "5. Data Retention & Deletion",
+      "paragraphs": [
+        "Account data is retained for as long as your account remains active. Detailed email logs and tracking events are retained according to plan retention periods or until deleted upon customer request.",
+        "Billing records and consent audit trails are retained as required by tax, accounting, and legal obligations."
+      ]
+    },
+    {
+      "id": "privacy-rights",
+      "heading": "6. Your Rights & Contacts",
+      "paragraphs": [
+        "Depending on your jurisdiction, you have rights to access, rectify, or delete your account information.",
+        "For privacy queries or data subject requests, email privacy@histeriamails.com."
+      ]
+    }
+  ]
+}

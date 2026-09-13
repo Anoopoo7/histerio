@@ -28,6 +28,8 @@ export interface RegisterPayload {
   email: string;
   password: string;
   name: string;
+  acceptedTermsVersion?: string;
+  acceptedPrivacyVersion?: string;
 }
 
 export interface VerifyEmailPayload {

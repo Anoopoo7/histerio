@@ -1,0 +1,77 @@
+{
+  "documentType": "terms",
+  "title": "Terms of Service",
+  "shortSummary": "Governs account creation, API usage, transactional email responsibilities, and service commitments.",
+  "version": "2026-01",
+  "effectiveDate": "2026-01-01",
+  "lastUpdated": "2026-09-13",
+  "isRequiredForRegistration": true,
+  "isRequiredForOrganization": true,
+  "status": "published",
+  "sections": [
+    {
+      "id": "acceptance",
+      "heading": "1. Acceptance of Terms",
+      "paragraphs": [
+        "By registering an account, creating an organization, or utilizing the API services provided by Histeria (\"Platform\", \"Service\"), operated by [LEGAL ENTITY NAME] (\"Company\", \"we\", \"us\"), you (\"Customer\", \"User\") agree to be legally bound by these Terms of Service.",
+        "If you are accepting these Terms on behalf of an organization or legal entity, you represent and warrant that you have full legal authority to bind such entity to these Terms."
+      ]
+    },
+    {
+      "id": "eligibility-accounts",
+      "heading": "2. Account Registration & Security",
+      "paragraphs": [
+        "You must provide accurate, current, and complete registration information. You are solely responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.",
+        "You must notify us immediately upon becoming aware of any breach of security or unauthorized use of your account or API keys."
+      ]
+    },
+    {
+      "id": "api-keys-organizations",
+      "heading": "3. Organizations & API Credentials",
+      "paragraphs": [
+        "Histeria allows accounts to create organizations, generate API keys, and configure SMTP settings to transmit application emails.",
+        "API keys grant direct access to send emails and manage organization resources. You must securely store API keys, avoid exposing them in public code repositories, and immediately revoke any key suspect of compromise."
+      ]
+    },
+    {
+      "id": "customer-responsibilities",
+      "heading": "4. Transactional Email & Customer Data Responsibilities",
+      "paragraphs": [
+        "Customers use Histeria to process recipient email addresses and send application messages (e.g. password resets, verification emails, order confirmations).",
+        "You represent and warrant that you have obtained all necessary rights, legal bases, and consents required under applicable law to transmit email data to your designated recipients through the Service."
+      ]
+    },
+    {
+      "id": "billing-subscriptions",
+      "heading": "5. Subscriptions, Payments & Taxes",
+      "paragraphs": [
+        "Paid features and higher email/template quotas require active subscription plans. Subscription billing, checkout, and recurring billing operations are processed securely via our payment provider (Razorpay).",
+        "All fees are exclusive of applicable taxes unless stated otherwise. Subscriptions automatically renew at the end of each billing period unless cancelled prior to renewal."
+      ]
+    },
+    {
+      "id": "suspension-termination",
+      "heading": "6. Suspension & Termination",
+      "paragraphs": [
+        "We reserve the right to immediately suspend or terminate access to the Service, revoke API keys, or disable email delivery without prior notice if we detect violations of our Acceptable Use Policy, spam complaints, or security threats.",
+        "Upon termination, your right to access the dashboard and send emails via the API will immediately cease."
+      ]
+    },
+    {
+      "id": "disclaimer-liability",
+      "heading": "7. Disclaimers & Limitation of Liability",
+      "paragraphs": [
+        "THE SERVICE IS PROVIDED \"AS IS\" AND \"AS AVAILABLE\" WITHOUT WARRANTIES OF ANY KIND. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, THE COMPANY SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, OR CONSEQUENTIAL DAMAGES RESULTING FROM SERVICE INTERRUPTIONS OR DATA TRANSMISSION DELAYS.",
+        "OUR AGGREGATE LIABILITY FOR ALL CLAIMS ARISING OUT OF OR RELATING TO THE SERVICE SHALL BE LIMITED TO THE GREATER OF $100 OR THE TOTAL FEES PAID BY YOU IN THE TWELVE MONTHS PRECEDING THE CLAIM."
+      ]
+    },
+    {
+      "id": "governing-law",
+      "heading": "8. Governing Law & Dispute Resolution",
+      "paragraphs": [
+        "These Terms shall be governed by and construed in accordance with the laws of [GOVERNING JURISDICTION], without regard to its conflict of law principles.",
+        "For questions regarding these Terms, contact our legal team at legal@histeriamails.com."
+      ]
+    }
+  ]
+}

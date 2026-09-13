@@ -10,6 +10,7 @@ import { Button, Input, Card, CardContent } from '@/components/ui';
 import { ApiError } from '@/lib/api';
 
 import { GoogleSignInButton } from '@/components/GoogleSignInButton';
+import { RegistrationConsent } from '@/components/legal/RegistrationConsent';
 
 export default function RegisterPage() {
   const { register, loginWithGoogle, isAuthenticated, isLoading: authLoading } = useAuth();
@@ -20,6 +21,7 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [acceptedConsent, setAcceptedConsent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [googleLoading, setGoogleLoading] = useState(false);
   const [error, setError] = useState('');
@@ -34,6 +36,11 @@ export default function RegisterPage() {
     e.preventDefault();
     const trimmedName = name.trim();
     const trimmedEmail = email.trim();
+
+    if (!acceptedConsent) {
+      setError('You must agree to the Terms of Service and acknowledge the Privacy Policy to create an account.');
+      return;
+    }
 
     if (!trimmedName) {
       setError('Full name is required');
@@ -68,6 +75,8 @@ export default function RegisterPage() {
         name: trimmedName,
         email: trimmedEmail,
         password,
+        acceptedTermsVersion: '1.0.0',
+        acceptedPrivacyVersion: '1.0.0',
       });
 
       addToast({
@@ -197,10 +206,16 @@ export default function RegisterPage() {
                   autoComplete="new-password"
                 />
 
+                <RegistrationConsent
+                  accepted={acceptedConsent}
+                  onConsentChange={setAcceptedConsent}
+                  disabled={isLoading || googleLoading}
+                />
+
                 <Button
                   type="submit"
                   isLoading={isLoading}
-                  disabled={googleLoading}
+                  disabled={googleLoading || !acceptedConsent}
                   className="w-full mt-2"
                   size="lg"
                   rightIcon={<ArrowRight className="w-4 h-4" />}

@@ -1,0 +1,114 @@
+{
+  "policies": [
+    {
+      "documentType": "terms",
+      "title": "Terms of Service",
+      "shortSummary": "Governs account creation, API usage, transactional email responsibilities, and service commitments.",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": true,
+      "isRequiredForOrganization": true,
+      "status": "published"
+    },
+    {
+      "documentType": "privacy",
+      "title": "Privacy Policy",
+      "shortSummary": "Explains data collection, processing purposes, email recipient data handling, and privacy rights.",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": true,
+      "isRequiredForOrganization": false,
+      "status": "published"
+    },
+    {
+      "documentType": "acceptable-use",
+      "title": "Acceptable Use Policy",
+      "shortSummary": "Prohibits spam, phishing, credential theft, malware distribution, and infrastructure abuse.",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": false,
+      "isRequiredForOrganization": true,
+      "status": "published"
+    },
+    {
+      "documentType": "anti-spam",
+      "title": "Anti-Spam & Transactional Email Policy",
+      "shortSummary": "Defines rules for legitimate application email and strict prohibitions against unsolicited bulk email.",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": false,
+      "isRequiredForOrganization": true,
+      "status": "published"
+    },
+    {
+      "documentType": "cookie",
+      "title": "Cookie & Local Storage Policy",
+      "shortSummary": "Details technical cookies and local storage tokens used for session authentication and preferences.",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": false,
+      "isRequiredForOrganization": false,
+      "status": "published"
+    },
+    {
+      "documentType": "dpa",
+      "title": "Data Processing Agreement (DPA)",
+      "shortSummary": "Establishes controller/processor responsibilities for email recipient data submitted via Histeria API.",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": false,
+      "isRequiredForOrganization": false,
+      "status": "published"
+    },
+    {
+      "documentType": "subprocessors",
+      "title": "Subprocessors List",
+      "shortSummary": "Lists third-party infrastructure and payment providers utilized by Histeria (e.g. Razorpay).",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": false,
+      "isRequiredForOrganization": false,
+      "status": "published"
+    },
+    {
+      "documentType": "refunds",
+      "title": "Refund & Cancellation Policy",
+      "shortSummary": "Outlines billing cycles, subscription cancellations, Razorpay payments, and refund terms.",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": false,
+      "isRequiredForOrganization": false,
+      "status": "published"
+    },
+    {
+      "documentType": "security",
+      "title": "Security & Data Protection Disclosures",
+      "shortSummary": "Documents technical access controls, API key security, SMTP credential encryption, and logging.",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": false,
+      "isRequiredForOrganization": false,
+      "status": "published"
+    },
+    {
+      "documentType": "sla",
+      "title": "Service Availability & SLA Disclosures",
+      "shortSummary": "Describes operational availability commitments and infrastructure maintenance policies.",
+      "version": "2026-01",
+      "effectiveDate": "2026-01-01",
+      "lastUpdated": "2026-09-13",
+      "isRequiredForRegistration": false,
+      "isRequiredForOrganization": false,
+      "status": "published"
+    }
+  ]
+}

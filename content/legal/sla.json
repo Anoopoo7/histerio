@@ -1,0 +1,21 @@
+{
+  "documentType": "sla",
+  "title": "Service Availability & SLA Disclosures",
+  "shortSummary": "Describes operational availability commitments and infrastructure maintenance policies.",
+  "version": "2026-01",
+  "effectiveDate": "2026-01-01",
+  "lastUpdated": "2026-09-13",
+  "isRequiredForRegistration": false,
+  "isRequiredForOrganization": false,
+  "status": "published",
+  "sections": [
+    {
+      "id": "service-level-disclosure",
+      "heading": "1. Service Availability Disclosure",
+      "paragraphs": [
+        "Histeria continuously monitors database and application health via an automated status checking system.",
+        "No formal financial Service Level Agreement (SLA) or uptime guarantee is currently published for standard accounts. Planned maintenance windows will be communicated via dashboard alerts where practical."
+      ]
+    }
+  ]
+}

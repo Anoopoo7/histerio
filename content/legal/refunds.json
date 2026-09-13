@@ -1,0 +1,30 @@
+{
+  "documentType": "refunds",
+  "title": "Refund & Cancellation Policy",
+  "shortSummary": "Outlines billing cycles, subscription cancellations, Razorpay payments, and refund terms.",
+  "version": "2026-01",
+  "effectiveDate": "2026-01-01",
+  "lastUpdated": "2026-09-13",
+  "isRequiredForRegistration": false,
+  "isRequiredForOrganization": false,
+  "status": "published",
+  "sections": [
+    {
+      "id": "cancellation",
+      "heading": "1. Subscription Cancellation",
+      "paragraphs": [
+        "You may cancel your paid subscription plan at any time through the Billing page in your organization dashboard.",
+        "Upon cancellation, your subscription remains active until the end of your current paid billing period. No further charges will occur."
+      ]
+    },
+    {
+      "id": "refunds",
+      "heading": "2. Refund Policy",
+      "paragraphs": [
+        "Histeria offers a Free tier allowing users to test platform functionality prior to subscribing.",
+        "Except where required by applicable law or explicitly approved in writing by Histeria support, paid subscription fees are non-refundable once the billing period has commenced.",
+        "If you believe a billing error occurred (e.g., duplicate Razorpay transaction), please contact support@histeriamails.com within 14 days of the transaction."
+      ]
+    }
+  ]
+}

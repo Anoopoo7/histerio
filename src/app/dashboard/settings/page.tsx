@@ -1,12 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shield, Key, User as UserIcon, CheckCircle2, AlertTriangle, AlertCircle, Trash2 } from 'lucide-react';
+import { Shield, Key, User as UserIcon, CheckCircle2, AlertTriangle, AlertCircle, Trash2, FileText } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/useToast';
 import { Card, CardContent, Button, Modal, Badge } from '@/components/ui';
 import { GoogleSignInButton, GoogleGIcon } from '@/components/GoogleSignInButton';
 import { ApiError } from '@/lib/api';
+
 
 export default function AccountSettingsPage() {
   const { user, linkGoogle, unlinkGoogle } = useAuth();
@@ -217,6 +218,91 @@ export default function AccountSettingsPage() {
                 )}
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Legal & Privacy Section */}
+      <Card className="border-zinc-800 bg-zinc-900/60">
+        <CardContent className="p-6 space-y-6">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2 text-zinc-100 font-semibold text-base">
+              <FileText className="w-5 h-5 text-indigo-400" />
+              Legal & Privacy Policies
+            </div>
+            <p className="text-xs text-zinc-400">
+              Review published agreements, data processing rules, and legal compliance documents
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <a
+              href="/legal/terms"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/60 hover:border-zinc-700 transition-colors flex items-center justify-between group"
+            >
+              <div>
+                <span className="font-semibold text-zinc-200 block group-hover:text-indigo-300">
+                  Terms of Service
+                </span>
+                <span className="text-[11px] text-zinc-500">v2026-01 • Mandatory</span>
+              </div>
+              <Badge variant="success" size="sm">
+                Accepted
+              </Badge>
+            </a>
+
+            <a
+              href="/legal/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/60 hover:border-zinc-700 transition-colors flex items-center justify-between group"
+            >
+              <div>
+                <span className="font-semibold text-zinc-200 block group-hover:text-indigo-300">
+                  Privacy Policy
+                </span>
+                <span className="text-[11px] text-zinc-500">v2026-01 • Acknowledged</span>
+              </div>
+              <Badge variant="success" size="sm">
+                Acknowledged
+              </Badge>
+            </a>
+
+            <a
+              href="/legal/acceptable-use"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/60 hover:border-zinc-700 transition-colors flex items-center justify-between group"
+            >
+              <div>
+                <span className="font-semibold text-zinc-200 block group-hover:text-indigo-300">
+                  Acceptable Use Policy
+                </span>
+                <span className="text-[11px] text-zinc-500">v2026-01 • Active</span>
+              </div>
+              <Badge variant="info" size="sm">
+                Published
+              </Badge>
+            </a>
+
+            <a
+              href="/legal/anti-spam"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="p-4 rounded-xl bg-zinc-950/60 border border-zinc-800/60 hover:border-zinc-700 transition-colors flex items-center justify-between group"
+            >
+              <div>
+                <span className="font-semibold text-zinc-200 block group-hover:text-indigo-300">
+                  Anti-Spam Policy
+                </span>
+                <span className="text-[11px] text-zinc-500">v2026-01 • Active</span>
+              </div>
+              <Badge variant="info" size="sm">
+                Published
+              </Badge>
+            </a>
           </div>
         </CardContent>
       </Card>

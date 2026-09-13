@@ -1,0 +1,27 @@
+{
+  "documentType": "cookie",
+  "title": "Cookie & Local Storage Policy",
+  "shortSummary": "Details technical cookies and local storage tokens used for session authentication and preferences.",
+  "version": "2026-01",
+  "effectiveDate": "2026-01-01",
+  "lastUpdated": "2026-09-13",
+  "isRequiredForRegistration": false,
+  "isRequiredForOrganization": false,
+  "status": "published",
+  "sections": [
+    {
+      "id": "cookies-used",
+      "heading": "1. Technical Cookies & Local Storage",
+      "paragraphs": [
+        "Histeria uses strictly essential cookies and browser Local Storage to enable authentication, store JWT tokens, and remember selected organization context.",
+        "We do not use third-party tracking pixels or ad retargeting cookies."
+      ],
+      "bullets": [
+        "histeria_jwt_token (LocalStorage): Encrypted JWT session token for user authentication.",
+        "histeria_selected_org_id (LocalStorage): Preserves currently active organization selection across dashboard views.",
+        "histeria_user_data (LocalStorage): Local user profile state representation.",
+        "g_state (Cookie): Managed directly by Google Identity Services when using Google Sign-In."
+      ]
+    }
+  ]
+}

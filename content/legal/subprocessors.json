@@ -1,0 +1,36 @@
+{
+  "documentType": "subprocessors",
+  "title": "Subprocessors List",
+  "shortSummary": "Lists third-party infrastructure and payment providers utilized by Histeria (e.g. Razorpay).",
+  "version": "2026-01",
+  "effectiveDate": "2026-01-01",
+  "lastUpdated": "2026-09-13",
+  "isRequiredForRegistration": false,
+  "isRequiredForOrganization": false,
+  "status": "published",
+  "sections": [
+    {
+      "id": "subprocessors-list",
+      "heading": "1. Active Subprocessors & Third-Party Services",
+      "paragraphs": [
+        "The following third-party service providers process data on behalf of Histeria to deliver infrastructure, payment, and authentication capabilities:"
+      ]
+    }
+  ],
+  "subprocessors": [
+    {
+      "name": "Razorpay Software Private Limited",
+      "purpose": "Payment processing, subscription billing, and invoice checkout",
+      "dataTypes": ["Customer Name", "Billing Email", "Subscription Plan Code", "Payment ID"],
+      "location": "India",
+      "website": "https://razorpay.com"
+    },
+    {
+      "name": "Google LLC (Google Identity Services)",
+      "purpose": "Single sign-on authentication and OAuth credential verification",
+      "dataTypes": ["Google User ID", "Email Address", "Profile Name"],
+      "location": "United States",
+      "website": "https://developers.google.com/identity"
+    }
+  ]
+}

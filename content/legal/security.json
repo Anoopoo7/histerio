@@ -1,0 +1,27 @@
+{
+  "documentType": "security",
+  "title": "Security & Data Protection Disclosures",
+  "shortSummary": "Documents technical access controls, API key security, SMTP credential encryption, and logging.",
+  "version": "2026-01",
+  "effectiveDate": "2026-01-01",
+  "lastUpdated": "2026-09-13",
+  "isRequiredForRegistration": false,
+  "isRequiredForOrganization": false,
+  "status": "published",
+  "sections": [
+    {
+      "id": "technical-controls",
+      "heading": "1. Technical Security Controls",
+      "paragraphs": [
+        "Histeria employs modern security controls to protect platform infrastructure and user data:"
+      ],
+      "bullets": [
+        "Authentication: JWT bearer authentication with bcrypt password hashing and server-verified Google OAuth ID tokens.",
+        "Organization Isolation: Strict multi-tenant isolation enforcing organization context verification headers (x-organization-id) on all tenant resources.",
+        "API Key Governance: API keys are securely hashed using HMAC SHA-256; raw secret keys are displayed only once upon creation.",
+        "Encrypted Credentials: SMTP credentials provided by customers are encrypted at rest prior to database storage.",
+        "Rate Limiting & Rate Throttling: Authentication and email sending endpoints are rate-limited to protect against brute-force attacks and abuse."
+      ]
+    }
+  ]
+}

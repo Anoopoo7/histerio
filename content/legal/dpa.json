@@ -1,0 +1,29 @@
+{
+  "documentType": "dpa",
+  "title": "Data Processing Agreement (DPA)",
+  "shortSummary": "Establishes controller/processor responsibilities for email recipient data submitted via Histeria API.",
+  "version": "2026-01",
+  "effectiveDate": "2026-01-01",
+  "lastUpdated": "2026-09-13",
+  "isRequiredForRegistration": false,
+  "isRequiredForOrganization": false,
+  "status": "published",
+  "sections": [
+    {
+      "id": "roles",
+      "heading": "1. Scope & Processing Roles",
+      "paragraphs": [
+        "This Data Processing Agreement (\"DPA\") supplements the Terms of Service. Customer acts as the Data Controller and Histeria acts as the Data Processor regarding recipient data processed through the API.",
+        "The parties' respective data protection responsibilities depend on the nature of the processing and applicable privacy laws."
+      ]
+    },
+    {
+      "id": "security-subprocessors",
+      "heading": "2. Security & Subprocessors",
+      "paragraphs": [
+        "Histeria implements technical and organizational measures to safeguard customer data against unauthorized access or disclosure.",
+        "A current list of subprocessors utilized by Histeria is maintained at /legal/subprocessors."
+      ]
+    }
+  ]
+}

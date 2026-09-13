@@ -1,0 +1,30 @@
+{
+  "documentType": "anti-spam",
+  "title": "Anti-Spam & Transactional Email Policy",
+  "shortSummary": "Defines rules for legitimate application email and strict prohibitions against unsolicited bulk email.",
+  "version": "2026-01",
+  "effectiveDate": "2026-01-01",
+  "lastUpdated": "2026-09-13",
+  "isRequiredForRegistration": false,
+  "isRequiredForOrganization": true,
+  "status": "published",
+  "sections": [
+    {
+      "id": "transactional-focus",
+      "heading": "1. Transactional Email Scope",
+      "paragraphs": [
+        "Histeria is designed specifically for application-driven transactional emails directly triggered by user actions or critical application events.",
+        "Examples of acceptable transactional emails include account registration verification, password reset links, order receipts, shipping notifications, and critical security alerts."
+      ]
+    },
+    {
+      "id": "spam-prohibition",
+      "heading": "2. Zero-Tolerance Spam Policy",
+      "paragraphs": [
+        "Histeria enforces a strict zero-tolerance policy for spam and unsolicited bulk marketing email.",
+        "Sending emails to purchased, rented, scraped, or third-party mailing lists is strictly prohibited.",
+        "High bounce rates (exceeding 5%) or complaint rates (exceeding 0.1%) will trigger automated account review and immediate delivery suspension."
+      ]
+    }
+  ]
+}

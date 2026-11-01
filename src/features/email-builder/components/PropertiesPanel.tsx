@@ -43,6 +43,9 @@ export interface PropertiesPanelProps {
   onUpdateRowProps: (rowId: string, props: Record<string, unknown>) => void;
   onUpdateColumnProps: (columnId: string, props: Record<string, unknown>) => void;
   onUpdateBlockProps: (blockId: string, props: Record<string, unknown>) => void;
+  onDeleteSection?: (sectionId: string) => void;
+  onDeleteRow?: (rowId: string) => void;
+  onDeleteBlock?: (blockId: string) => void;
   onClose: () => void;
 }
 
@@ -66,6 +69,9 @@ export function PropertiesPanel({
   onUpdateRowProps,
   onUpdateColumnProps,
   onUpdateBlockProps,
+  onDeleteSection,
+  onDeleteRow,
+  onDeleteBlock,
   onClose,
 }: PropertiesPanelProps) {
   const [panelTab, setPanelTab] = useState<'properties' | 'test-data'>('properties');
@@ -356,6 +362,20 @@ export function PropertiesPanel({
               value={Number(selectedSection.props.borderRadius) || 0}
               onChange={(e) => onUpdateSectionProps(selectedSection!.id, { borderRadius: Number(e.target.value) || 0 })}
             />
+
+            {onDeleteSection && (
+              <div className="pt-4 border-t border-zinc-800">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border-rose-500/30"
+                  onClick={() => onDeleteSection(selectedSection.id)}
+                  leftIcon={<Trash2 className="w-4 h-4" />}
+                >
+                  Delete Section
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -374,6 +394,20 @@ export function PropertiesPanel({
                 className="w-4 h-4 rounded text-indigo-600 bg-zinc-900 border-zinc-700 focus:ring-indigo-500"
               />
             </div>
+
+            {onDeleteRow && (
+              <div className="pt-4 border-t border-zinc-800">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border-rose-500/30"
+                  onClick={() => onDeleteRow(selectedRow.id)}
+                  leftIcon={<Trash2 className="w-4 h-4" />}
+                >
+                  Delete Row
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
@@ -665,6 +699,20 @@ export function PropertiesPanel({
                 ))}
               </div>
             </div>
+
+            {onDeleteBlock && (
+              <div className="pt-4 border-t border-zinc-800">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 border-rose-500/30"
+                  onClick={() => onDeleteBlock(selectedBlock.id)}
+                  leftIcon={<Trash2 className="w-4 h-4" />}
+                >
+                  Delete Block
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </div>

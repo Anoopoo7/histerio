@@ -5,7 +5,7 @@ import { BuilderColumn, BuilderRow, BuilderSection } from '../model/types';
 import { BlockToolbar } from './BlockToolbar';
 import { CanvasRow } from './CanvasRow';
 import { Button } from '@/components/ui';
-import { Plus } from 'lucide-react';
+import { Plus, Trash2 } from 'lucide-react';
 import { useBuilderDnd } from '../context/BuilderDndContext';
 
 export interface CanvasSectionProps {
@@ -29,6 +29,8 @@ export interface CanvasSectionProps {
   onMoveSection?: (direction: 'up' | 'down') => void;
   onDuplicateSection?: () => void;
   onDeleteSection?: () => void;
+  onDeleteRow?: (rowId: string) => void;
+  onDuplicateRow?: (rowId: string) => void;
   onAddRow?: (layoutType: 'row-1' | 'row-2' | 'row-3') => void;
 }
 
@@ -53,6 +55,8 @@ export function CanvasSection({
   onMoveSection,
   onDuplicateSection,
   onDeleteSection,
+  onDeleteRow,
+  onDuplicateRow,
   onAddRow,
 }: CanvasSectionProps) {
   const { startDrag, activeDragItem, activeDropTarget, handleDragOver, handleDrop } =
@@ -83,7 +87,7 @@ export function CanvasSection({
         padding: pad,
         borderRadius: `${radius}px`,
       }}
-      className={`relative mb-6 transition-all rounded-xl shadow-xs select-none ${
+      className={`relative mb-6 transition-all rounded-xl shadow-xs select-none w-full max-w-full overflow-hidden break-words ${
         isDraggingThisSection
           ? 'opacity-40 border-2 border-dashed border-indigo-500 scale-[0.99]'
           : isSectionTarget
@@ -102,6 +106,21 @@ export function CanvasSection({
           onDelete={onDeleteSection}
           onDragStartHandle={handleDragStartSection}
         />
+      )}
+
+      {/* Quick Hover Delete Section Button */}
+      {!isSelected && onDeleteSection && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteSection();
+          }}
+          className="absolute -top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg bg-zinc-900/95 border border-zinc-700/80 text-zinc-400 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-950/40 z-30 shadow-md"
+          title="Delete Section"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
       )}
 
       {section.children.length === 0 ? (
@@ -149,6 +168,9 @@ export function CanvasSection({
                 onMoveBlock={onMoveBlock}
                 onDuplicateBlock={onDuplicateBlock}
                 onDeleteBlock={onDeleteBlock}
+                onDeleteRow={onDeleteRow ? () => onDeleteRow(row.id) : undefined}
+                onDuplicateRow={onDuplicateRow ? () => onDuplicateRow(row.id) : undefined}
+                onSelectParentSection={onSelectSection}
               />
             </React.Fragment>
           ))}

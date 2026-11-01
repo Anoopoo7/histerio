@@ -659,14 +659,50 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
 
   // Delete Section
   const handleDeleteSection = (sectionId: string) => {
-    handleDocChange((prev) => {
-      if (prev.children.length <= 1) return prev;
-      return {
-        ...prev,
-        children: prev.children.filter((s) => s.id !== sectionId),
-      };
-    });
+    handleDocChange((prev) => ({
+      ...prev,
+      children: prev.children.filter((s) => s.id !== sectionId),
+    }));
     setSelectedTarget({ type: 'document' });
+  };
+
+  // Delete Row
+  const handleDeleteRow = (rowId: string) => {
+    handleDocChange((prev) => ({
+      ...prev,
+      children: prev.children.map((s) => ({
+        ...s,
+        children: s.children.filter((r) => r.id !== rowId),
+      })),
+    }));
+    setSelectedTarget({ type: 'document' });
+  };
+
+  // Duplicate Row
+  const handleDuplicateRow = (rowId: string) => {
+    handleDocChange((prev) => ({
+      ...prev,
+      children: prev.children.map((s) => {
+        const idx = s.children.findIndex((r) => r.id === rowId);
+        if (idx === -1) return s;
+        const original = s.children[idx];
+        const clone: BuilderRow = {
+          ...JSON.parse(JSON.stringify(original)),
+          id: generateId('row'),
+          columns: original.columns.map((c) => ({
+            ...JSON.parse(JSON.stringify(c)),
+            id: generateId('col'),
+            children: c.children.map((b) => ({
+              ...JSON.parse(JSON.stringify(b)),
+              id: generateId(`block-${b.type}`),
+            })),
+          })),
+        };
+        const updated = [...s.children];
+        updated.splice(idx + 1, 0, clone);
+        return { ...s, children: updated };
+      }),
+    }));
   };
 
   // Add Row to Section
@@ -800,6 +836,8 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
             onMoveSection={handleMoveSection}
             onDuplicateSection={handleDuplicateSection}
             onDeleteSection={handleDeleteSection}
+            onDeleteRow={handleDeleteRow}
+            onDuplicateRow={handleDuplicateRow}
             onAddRow={handleAddRowToSection}
           />
 
@@ -815,6 +853,9 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
               onUpdateRowProps={handleUpdateRowProps}
               onUpdateColumnProps={handleUpdateColumnProps}
               onUpdateBlockProps={handleUpdateBlockProps}
+              onDeleteSection={handleDeleteSection}
+              onDeleteRow={handleDeleteRow}
+              onDeleteBlock={handleDeleteBlock}
               onClose={() => setSelectedTarget(null)}
             />
           )}

@@ -16,7 +16,7 @@ import {
 import { BlockToolbar } from './BlockToolbar';
 import { replaceVariablesWithMockData } from '../utils/variableUtils';
 import { useBuilderDnd } from '../context/BuilderDndContext';
-import { GripVertical } from 'lucide-react';
+import { GripVertical, Trash2 } from 'lucide-react';
 
 export interface BlockRendererProps {
   block: BuilderBlock;
@@ -334,6 +334,21 @@ export function BlockRenderer({
       >
         <GripVertical className="w-3.5 h-3.5" />
       </div>
+
+      {/* Quick Hover Delete Button */}
+      {!isSelected && onDelete && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete();
+          }}
+          className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-zinc-900/90 border border-zinc-700/80 text-zinc-400 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-950/40 z-20 shadow-xs"
+          title="Delete Block"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
 
       {isSelected && (
         <BlockToolbar

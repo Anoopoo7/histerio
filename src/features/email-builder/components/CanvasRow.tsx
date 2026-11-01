@@ -4,6 +4,8 @@ import React, { useRef } from 'react';
 import { resizeColumns } from '../model/columnResize';
 import { BuilderColumn, BuilderRow } from '../model/types';
 import { CanvasColumn } from './CanvasColumn';
+import { BlockToolbar } from './BlockToolbar';
+import { Trash2 } from 'lucide-react';
 
 export interface CanvasRowProps {
   row: BuilderRow;
@@ -21,6 +23,9 @@ export interface CanvasRowProps {
   onMoveBlock: (blockId: string, direction: 'up' | 'down') => void;
   onDuplicateBlock: (blockId: string) => void;
   onDeleteBlock: (blockId: string) => void;
+  onDeleteRow?: () => void;
+  onDuplicateRow?: () => void;
+  onSelectParentSection?: () => void;
 }
 
 export function CanvasRow({
@@ -39,6 +44,9 @@ export function CanvasRow({
   onMoveBlock,
   onDuplicateBlock,
   onDeleteBlock,
+  onDeleteRow,
+  onDuplicateRow,
+  onSelectParentSection,
 }: CanvasRowProps) {
   const isResizingRef = useRef(false);
 
@@ -78,10 +86,33 @@ export function CanvasRow({
         onSelectRow();
       }}
       style={{ padding: pad, backgroundColor: row.props.backgroundColor || 'transparent' }}
-      className={`relative rounded-xl transition-all ${
+      className={`relative rounded-xl transition-all group/row w-full ${
         isSelected ? 'ring-2 ring-emerald-500 bg-emerald-500/5' : 'hover:ring-1 hover:ring-emerald-300/40'
       }`}
     >
+      {isSelected && (
+        <BlockToolbar
+          label={`Row (${row.columns.length} col)`}
+          onDuplicate={onDuplicateRow}
+          onDelete={onDeleteRow}
+          onSelectParent={onSelectParentSection}
+        />
+      )}
+
+      {/* Quick Hover Delete Row button */}
+      {!isSelected && onDeleteRow && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onDeleteRow();
+          }}
+          className="absolute -top-2.5 right-2 opacity-0 group-hover/row:opacity-100 transition-opacity p-1 rounded-md bg-zinc-900/95 border border-zinc-700/80 text-zinc-400 hover:text-rose-400 hover:border-rose-500/50 hover:bg-rose-950/40 z-20 shadow-md"
+          title="Delete Row"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+        </button>
+      )}
       <div className="flex flex-wrap md:flex-nowrap items-stretch gap-0 relative">
         {row.columns.map((col, idx) => (
           <React.Fragment key={col.id}>

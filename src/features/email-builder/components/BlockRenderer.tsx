@@ -21,6 +21,7 @@ import {
   evaluateCondition,
   replaceVariablesWithMockData,
   resolveIterable,
+  ScopedLoopContext,
 } from '../utils/variableUtils';
 import { useBuilderDnd } from '../context/BuilderDndContext';
 import {
@@ -70,6 +71,7 @@ export interface BlockRendererProps {
   onDeleteBlockById?: (blockId: string) => void;
   onSelectParent?: () => void;
   onAddBlockToContainer?: (target: DropTarget, blockType: BuilderBlockType) => void;
+  scopedLoopData?: ScopedLoopContext;
 }
 
 function QuickAddDropdown({
@@ -186,6 +188,7 @@ export function BlockRenderer({
   onDeleteBlockById,
   onSelectParent,
   onAddBlockToContainer,
+  scopedLoopData,
 }: BlockRendererProps) {
   const isResizingImageRef = useRef(false);
   const {
@@ -209,7 +212,7 @@ export function BlockRenderer({
   const evalText = (rawStr: string | undefined | null) => {
     if (!rawStr) return '';
     if (renderMode === 'rendered' && testDataJson) {
-      return replaceVariablesWithMockData(rawStr, testDataJson);
+      return replaceVariablesWithMockData(rawStr, testDataJson, scopedLoopData);
     }
     return rawStr;
   };
@@ -748,6 +751,7 @@ export function BlockRenderer({
                         isSelected={selectedBlockId === child.id}
                         selectedBlockId={selectedBlockId}
                         testDataJson={testDataJson}
+                        scopedLoopData={scopedLoopData}
                         renderMode={renderMode}
                         onSelect={() => (onSelectBlockById ? onSelectBlockById(child.id) : onSelect())}
                         onSelectBlockById={onSelectBlockById}
@@ -938,6 +942,7 @@ export function BlockRenderer({
                           isSelected={selectedBlockId === child.id}
                           selectedBlockId={selectedBlockId}
                           testDataJson={testDataJson}
+                          scopedLoopData={scopedLoopData}
                           renderMode={renderMode}
                           onSelect={() => (onSelectBlockById ? onSelectBlockById(child.id) : onSelect())}
                           onSelectBlockById={onSelectBlockById}
@@ -1022,9 +1027,23 @@ export function BlockRenderer({
                   </span>
                   <span className="text-[10px] text-zinc-400">as |{itemName}|</span>
                 </div>
-                <span className="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                  {items.length} {items.length === 1 ? 'item' : 'items'} rendered
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-medium text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    {items.length} {items.length === 1 ? 'item' : 'items'} rendered
+                  </span>
+                  {onAddBlockToContainer && (
+                    <QuickAddDropdown
+                      label="Add to Loop"
+                      themeColor="emerald"
+                      onAdd={(type) =>
+                        onAddBlockToContainer(
+                          { type: 'loop', blockId: block.id, index: children.length },
+                          type
+                        )
+                      }
+                    />
+                  )}
+                </div>
               </div>
 
               {items.length === 0 ? (
@@ -1044,14 +1063,28 @@ export function BlockRenderer({
                       // fallback
                     }
 
+                    const itemNameLabel =
+                      itemVal && typeof itemVal === 'object' && 'name' in itemVal
+                        ? String((itemVal as Record<string, unknown>).name)
+                        : itemVal && typeof itemVal === 'object' && 'title' in itemVal
+                        ? String((itemVal as Record<string, unknown>).title)
+                        : null;
+
                     return (
                       <div
                         key={iIdx}
-                        className="rounded-lg border border-emerald-500/20 bg-emerald-950/10 p-2 space-y-2 relative"
+                        className="rounded-lg border border-emerald-500/25 bg-zinc-950/60 p-2.5 space-y-2 relative"
                       >
-                        <span className="absolute top-1 right-2 text-[9px] font-mono text-emerald-500/60 uppercase">
-                          Item #{iIdx + 1}
-                        </span>
+                        <div className="flex items-center justify-between pb-1 border-b border-emerald-500/15 text-[10px] font-mono">
+                          <span className="text-emerald-400 font-semibold flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                            Item #{iIdx + 1} of {items.length}
+                            {itemNameLabel ? (
+                              <span className="text-zinc-300 font-sans font-medium">— {itemNameLabel}</span>
+                            ) : null}
+                          </span>
+                          <span className="text-zinc-500">{itemName}</span>
+                        </div>
                         {children.map((child, cIdx) => (
                           <BlockRenderer
                             key={`${child.id}-iter-${iIdx}`}
@@ -1063,6 +1096,7 @@ export function BlockRenderer({
                             isSelected={selectedBlockId === child.id}
                             selectedBlockId={selectedBlockId}
                             testDataJson={scopedJson}
+                            scopedLoopData={{ alias: itemName, item: itemVal, index: iIdx, total: items.length }}
                             renderMode={renderMode}
                             onSelect={() => (onSelectBlockById ? onSelectBlockById(child.id) : onSelect())}
                             onSelectBlockById={onSelectBlockById}
@@ -1086,6 +1120,29 @@ export function BlockRenderer({
                   })}
                 </div>
               )}
+
+              {/* Append dropzone in rendered mode so user can drag-and-drop into the loop */}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDragOver({ type: 'loop', blockId: block.id, index: children.length }, e);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDrop({ type: 'loop', blockId: block.id, index: children.length }, e);
+                }}
+                className={`py-1.5 text-center text-[10px] rounded border border-dashed transition-all cursor-pointer ${
+                  activeDropTarget?.type === 'loop' &&
+                  activeDropTarget.blockId === block.id &&
+                  activeDropTarget.index === children.length
+                    ? 'border-indigo-400 bg-indigo-500/20 text-indigo-300'
+                    : 'border-emerald-500/20 text-zinc-400 hover:border-emerald-500/40 hover:text-emerald-300'
+                }`}
+              >
+                + Drop here to append to loop
+              </div>
             </div>
           );
         }

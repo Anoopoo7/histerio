@@ -1,4 +1,5 @@
 import { BLOCK_REGISTRY } from './registry';
+import { getLoopItemProperties } from '../utils/variableUtils';
 import {
   BuilderBlock,
   BuilderBlockType,
@@ -158,6 +159,31 @@ export function createBlock(type: BuilderBlockType): BuilderBlock {
     case 'loop':
       return createLoopBlock();
   }
+}
+
+export function createBlockForLoop(
+  type: BuilderBlockType,
+  loopBlock?: LoopBlock | null,
+  testDataJson?: string
+): BuilderBlock {
+  const block = createBlock(type);
+  const alias = loopBlock?.props.itemName || 'item';
+  const iter = loopBlock?.props.iterable || 'order.items';
+  const loopInfo = getLoopItemProperties(testDataJson, iter, alias);
+  const propName = loopInfo.firstItemProp;
+
+  if (type === 'heading') {
+    (block as HeadingBlock).props.text = propName ? `{{${alias}.${propName}}}` : `{{${alias}}}`;
+  } else if (type === 'text') {
+    (block as TextBlock).props.content = propName
+      ? `{{${alias}.${propName}}}${loopInfo.hasPrice ? ` — {{${alias}.price}}` : ''}`
+      : `{{${alias}}}`;
+  } else if (type === 'button') {
+    (block as ButtonBlock).props.text = propName ? `Buy {{${alias}.${propName}}}` : `Select {{${alias}}}`;
+  } else if (type === 'image') {
+    (block as ImageBlock).props.alt = propName ? `{{${alias}.${propName}}}` : `{{${alias}}}`;
+  }
+  return block;
 }
 
 export function createOneColumnRow(initialBlocks: BuilderBlock[] = []): BuilderRow {

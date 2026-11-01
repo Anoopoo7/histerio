@@ -6,6 +6,7 @@ import { createTemplateVersionApi, updateTemplateApi, ApiError } from '@/lib/api
 import { useToast } from '@/hooks/useToast';
 import {
   createBlock,
+  createBlockForLoop,
   createDefaultDocument,
   createOneColumnRow,
   createSection,
@@ -23,6 +24,7 @@ import {
   ButtonProps,
   HeadingProps,
   LayoutType,
+  LoopBlock,
   SelectedTarget,
   TextProps,
   DragItem,
@@ -30,11 +32,13 @@ import {
 } from '../model/types';
 import { validateBuilderDocument } from '../model/validation';
 import { generateEmailHtml } from '../renderer/renderEmail';
-import { validateVariableSyntax } from '../utils/variableUtils';
+import { validateVariableSyntax, syncMockDataWithTemplate } from '../utils/variableUtils';
 import { useUndoRedo } from '../history/useUndoRedo';
 import {
   deleteBlockRecursive,
   duplicateBlockRecursive,
+  findBlockInDoc,
+  findEnclosingLoop,
   insertBlockIntoDoc,
   insertBlockNextTo,
   moveBlockRecursive,
@@ -152,7 +156,15 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
   // Mark dirty when doc or subject changes
   const handleDocChange = useCallback(
     (updater: (prev: BuilderDocument) => BuilderDocument) => {
-      setDoc(updater);
+      setDoc((prev) => {
+        const next = updater(prev);
+        // Automatically sync new variables, if-else conditions, and loops into test data JSON
+        setSampleJson((prevJson) => {
+          const syncRes = syncMockDataWithTemplate(prevJson, next);
+          return syncRes.hasChanges ? syncRes.jsonStr : prevJson;
+        });
+        return next;
+      });
       setIsDirty(true);
     },
     [setDoc]
@@ -181,7 +193,17 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
       handleDocChange((prev) => {
         // 1. Dropping a NEW BLOCK from Palette
         if (item.kind === 'new-block') {
-          const newBlock = createBlock(item.blockType);
+          let loopBlock: LoopBlock | null = null;
+          if (target.type === 'loop') {
+            const found = findBlockInDoc(prev, target.blockId);
+            if (found?.type === 'loop') loopBlock = found;
+          } else if (target.type === 'if-branch') {
+            loopBlock = findEnclosingLoop(prev, target.blockId);
+          }
+
+          const newBlock = loopBlock
+            ? createBlockForLoop(item.blockType, loopBlock, sampleJson)
+            : createBlock(item.blockType);
 
           if (target.type === 'column' || target.type === 'if-branch' || target.type === 'loop') {
             const nextDoc = insertBlockIntoDoc(prev, target, newBlock);
@@ -321,7 +343,7 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
         return prev;
       });
     },
-    [handleDocChange]
+    [handleDocChange, sampleJson]
   );
 
   // Insert Layout structure (click)
@@ -354,9 +376,25 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
 
   // Insert Block directly into selected target or sensible default (click)
   const handleAddBlock = (blockType: BuilderBlockType) => {
-    const newBlock = createBlock(blockType);
     handleDocChange((prev) => {
+      let loopBlock: LoopBlock | null = null;
+      if (selectedTarget?.type === 'block') {
+        const found = findBlockInDoc(prev, selectedTarget.id);
+        if (found?.type === 'loop') {
+          loopBlock = found;
+        } else {
+          loopBlock = findEnclosingLoop(prev, selectedTarget.id);
+        }
+      }
+
+      const newBlock = loopBlock
+        ? createBlockForLoop(blockType, loopBlock, sampleJson)
+        : createBlock(blockType);
+
       if (prev.children.length === 0) {
+        setTimeout(() => {
+          setSelectedTarget({ type: 'block', id: newBlock.id, columnId: '', rowId: '', sectionId: '' });
+        }, 0);
         return {
           ...prev,
           children: [createSection([createOneColumnRow([newBlock])])],
@@ -418,6 +456,10 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
       const lastSecIdx = updated.length - 1;
       const sec = updated[lastSecIdx];
 
+      setTimeout(() => {
+        setSelectedTarget({ type: 'block', id: newBlock.id, columnId: '', rowId: '', sectionId: '' });
+      }, 0);
+
       if (sec.children.length === 0) {
         updated[lastSecIdx] = { ...sec, children: [createOneColumnRow([newBlock])] };
         return { ...prev, children: updated };
@@ -450,16 +492,33 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
       updated[lastSecIdx] = { ...sec, children: updatedRows };
       return { ...prev, children: updated };
     });
-
-    setSelectedTarget({ type: 'block', id: newBlock.id, columnId: '', rowId: '', sectionId: '' });
   };
 
   // Add Block directly into a target container (e.g. if-branch or loop)
-  const handleAddBlockToContainer = useCallback((target: DropTarget, blockType: BuilderBlockType) => {
-    const newBlock = createBlock(blockType);
-    handleDocChange((prev) => insertBlockIntoDoc(prev, target, newBlock));
-    setSelectedTarget({ type: 'block', id: newBlock.id, columnId: '', rowId: '', sectionId: '' });
-  }, [handleDocChange]);
+  const handleAddBlockToContainer = useCallback(
+    (target: DropTarget, blockType: BuilderBlockType) => {
+      handleDocChange((prev) => {
+        let loopBlock: LoopBlock | null = null;
+        if (target.type === 'loop') {
+          const found = findBlockInDoc(prev, target.blockId);
+          if (found?.type === 'loop') loopBlock = found;
+        } else if (target.type === 'if-branch') {
+          loopBlock = findEnclosingLoop(prev, target.blockId);
+        }
+
+        const newBlock = loopBlock
+          ? createBlockForLoop(blockType, loopBlock, sampleJson)
+          : createBlock(blockType);
+
+        setTimeout(() => {
+          setSelectedTarget({ type: 'block', id: newBlock.id, columnId: '', rowId: '', sectionId: '' });
+        }, 0);
+
+        return insertBlockIntoDoc(prev, target, newBlock);
+      });
+    },
+    [handleDocChange, sampleJson]
+  );
 
   // Insert Dynamic Preset Snippet (click)
   const handleAddPresetSnippet = (snippetType: PresetSnippetType) => {

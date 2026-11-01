@@ -1,16 +1,21 @@
 import React, { useState, useMemo } from 'react';
-import { COMMON_VARIABLES, getPathsFromObject, isValidVariablePath } from '../utils/variableUtils';
+import { COMMON_VARIABLES, getPathsFromObject, isValidVariablePath, getLoopItemProperties } from '../utils/variableUtils';
 import { Button, Input } from '@/components/ui';
-import { Variable, Plus, Tag, Check } from 'lucide-react';
+import { Variable, Plus, Tag, Check, Repeat } from 'lucide-react';
 
 export interface VariablePickerPopoverProps {
   testDataJson?: string;
+  loopContext?: {
+    iterable: string;
+    itemName: string;
+  };
   onSelectVariable: (varTag: string) => void;
   onClose?: () => void;
 }
 
 export function VariablePickerPopover({
   testDataJson,
+  loopContext,
   onSelectVariable,
   onClose,
 }: VariablePickerPopoverProps) {
@@ -42,6 +47,11 @@ export function VariablePickerPopover({
     handleSelect(trimmed);
   };
 
+  const loopProps = useMemo(() => {
+    if (!loopContext) return null;
+    return getLoopItemProperties(testDataJson, loopContext.iterable, loopContext.itemName);
+  }, [loopContext, testDataJson]);
+
   const activeVars = useMemo(() => {
     if (testDataJson) {
       try {
@@ -65,6 +75,41 @@ export function VariablePickerPopover({
           <span>Insert Handlebars Variable</span>
         </div>
       </div>
+
+      {/* Loop Item Variables Section (when inside a loop) */}
+      {loopProps && loopProps.props.length > 0 && (
+        <div className="space-y-1 pb-2 border-b border-zinc-800">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] font-semibold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Repeat className="w-3 h-3 text-emerald-400" />
+              Loop Variables ({loopProps.alias})
+            </span>
+            <span className="text-[10px] text-zinc-500 font-mono">{loopProps.iterable}</span>
+          </div>
+          <div className="space-y-1 max-h-36 overflow-y-auto pr-1">
+            {loopProps.props.map((v) => (
+              <button
+                key={v.path}
+                type="button"
+                onClick={() => handleSelect(v.path)}
+                className="w-full flex items-center justify-between px-2 py-1 rounded-lg bg-emerald-950/40 border border-emerald-500/20 hover:border-emerald-400/50 hover:bg-emerald-500/15 transition-all text-left group cursor-pointer"
+              >
+                <div>
+                  <span className="font-semibold text-zinc-200 block group-hover:text-emerald-300">
+                    {v.label}
+                  </span>
+                  <span className="font-mono text-[11px] text-emerald-400/90">{`{{${v.path}}}`}</span>
+                </div>
+                {copiedTag === `{{${v.path}}}` ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                ) : (
+                  <span className="text-[10px] text-zinc-400 italic max-w-[90px] truncate">{v.sampleValue}</span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Custom & Common Variables Section */}
       <div className="space-y-1 max-h-48 overflow-y-auto pr-1">

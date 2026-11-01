@@ -256,9 +256,9 @@ function renderBlockHtml(block: BuilderBlock): string {
       }
 
       if (p.showElse && ((block.elseChildren && block.elseChildren.length > 0) || elseContent.trim())) {
-        return `{{#if ${conditionTag}}}\n${thenContent}\n{{else}}\n${elseContent}\n{{/if}}`;
+        return `{{#if ${conditionTag}}}\n${thenContent}\n{{else branch}}\n${elseContent}\n{{/if end}}`;
       }
-      return `{{#if ${conditionTag}}}\n${thenContent}\n{{/if}}`;
+      return `{{#if ${conditionTag}}}\n${thenContent}\n{{/if end}}`;
     }
 
     case 'loop': {
@@ -272,7 +272,7 @@ function renderBlockHtml(block: BuilderBlock): string {
       }
 
       const alias = p.itemName && p.itemName !== 'this' ? ` as |${p.itemName}|` : '';
-      return `{{#each ${iterTag}${alias}}}\n${childrenContent}\n{{/each}}`;
+      return `{{#each ${iterTag}${alias}}}\n${childrenContent}\n{{/each end}}`;
     }
   }
 }

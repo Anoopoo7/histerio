@@ -16,7 +16,8 @@ import {
 } from '../model/types';
 import { VariablePickerPopover } from './VariablePickerPopover';
 import { Button, Input, Select, Badge } from '@/components/ui';
-import { findBlockRecursive } from '../utils/treeOperations';
+import { findBlockRecursive, findEnclosingLoop } from '../utils/treeOperations';
+import { DEFAULT_MOCK_DATA_JSON, syncMockDataWithTemplate } from '../utils/variableUtils';
 import {
   AlignLeft,
   AlignCenter,
@@ -34,6 +35,7 @@ import {
   RotateCcw,
   GitFork,
   Repeat,
+  Sparkles,
 } from 'lucide-react';
 
 export interface PropertiesPanelProps {
@@ -103,17 +105,14 @@ export function PropertiesPanel({
   };
 
   const handleResetSamplePayload = () => {
-    const sample = JSON.stringify(
-      {
-        order: {
-          id: '1234',
-          name: 'test user',
-        },
-      },
-      null,
-      2
-    );
-    onUpdateTestDataJson(sample);
+    const syncRes = syncMockDataWithTemplate(DEFAULT_MOCK_DATA_JSON, doc);
+    onUpdateTestDataJson(syncRes.jsonStr);
+    setJsonError(null);
+  };
+
+  const handleSyncFromTemplate = () => {
+    const syncRes = syncMockDataWithTemplate(testDataJson, doc);
+    onUpdateTestDataJson(syncRes.jsonStr);
     setJsonError(null);
   };
 
@@ -167,6 +166,8 @@ export function PropertiesPanel({
     }
   }
 
+  const enclosingLoop = selectedBlock ? findEnclosingLoop(doc, selectedBlock.id) : null;
+
   const handleVariableInsert = (varTag: string) => {
     if (selectedBlock) {
       if (selectedBlock.type === 'text') {
@@ -174,7 +175,8 @@ export function PropertiesPanel({
         onUpdateBlockProps(selectedBlock.id, { content: `${current} ${varTag}` });
       } else if (selectedBlock.type === 'heading') {
         const current = selectedBlock.props.text || '';
-        onUpdateBlockProps(selectedBlock.id, { text: `${current} ${varTag}` });
+        const nextText = !current || current === 'Heading Text' ? varTag : `${current} ${varTag}`;
+        onUpdateBlockProps(selectedBlock.id, { text: nextText });
       } else if (selectedBlock.type === 'button') {
         const current = selectedBlock.props.text || '';
         onUpdateBlockProps(selectedBlock.id, { text: `${current} ${varTag}` });
@@ -244,7 +246,7 @@ export function PropertiesPanel({
               )}
             </div>
             <p className="text-[11px] text-zinc-400 leading-relaxed">
-              Write your test JSON object below (e.g. <code className="text-purple-300">{`{ "order": { "name": "test user" } }`}</code>). Widget variables like <code className="text-purple-300">{"{{order.name}}"}</code> will evaluate against this payload.
+              All dynamic tags in your template (e.g. <code className="text-purple-300">{"{{sample}}"}</code>, loop arrays, if/else flags) automatically populate here. Edit their values to preview live results on the canvas.
             </p>
           </div>
 
@@ -253,7 +255,7 @@ export function PropertiesPanel({
               value={testDataJson}
               onChange={(e) => handleJsonChange(e.target.value)}
               className="w-full flex-1 p-3 bg-zinc-950 border border-zinc-800 rounded-xl font-mono text-xs text-emerald-300/90 focus:outline-none focus:border-zinc-700 resize-none leading-relaxed min-h-[300px]"
-              placeholder={`{\n  "order": {\n    "id": "1234",\n    "name": "test user"\n  }\n}`}
+              placeholder={`{\n  "sample": "sample",\n  "order": {\n    "items": []\n  }\n}`}
               spellCheck={false}
             />
 
@@ -265,12 +267,17 @@ export function PropertiesPanel({
             )}
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
-            <Button size="sm" variant="outline" onClick={handleFormatJson} leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}>
-              Format JSON
-            </Button>
+          <div className="flex items-center justify-between pt-2 border-t border-zinc-800 gap-2 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Button size="sm" variant="outline" onClick={handleFormatJson} leftIcon={<CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}>
+                Format
+              </Button>
+              <Button size="sm" variant="outline" onClick={handleSyncFromTemplate} leftIcon={<Sparkles className="w-3.5 h-3.5 text-purple-400" />}>
+                Sync Keys
+              </Button>
+            </div>
             <Button size="sm" variant="ghost" onClick={handleResetSamplePayload} leftIcon={<RotateCcw className="w-3.5 h-3.5 text-zinc-400" />}>
-              Reset Sample
+              Reset
             </Button>
           </div>
         </div>
@@ -464,6 +471,18 @@ export function PropertiesPanel({
         {/* Block Settings */}
         {targetType === 'block' && selectedBlock && (
           <div className="space-y-4">
+            {/* Enclosing Loop Indicator */}
+            {enclosingLoop && (
+              <div className="p-2.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 flex items-center justify-between text-xs text-emerald-300">
+                <div className="flex items-center gap-2">
+                  <Repeat className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                  <span>
+                    Inside Loop: <code className="font-mono text-emerald-200">{"{{#each " + (enclosingLoop.props.iterable || 'items') + " as |" + (enclosingLoop.props.itemName || 'item') + "|}}"}</code>
+                  </span>
+                </div>
+              </div>
+            )}
+
             {/* Variable Insert Popover Trigger */}
             {['text', 'heading', 'button'].includes(selectedBlock.type) && (
               <div className="relative">
@@ -480,6 +499,14 @@ export function PropertiesPanel({
                   <div className="absolute top-10 left-0 z-50">
                     <VariablePickerPopover
                       testDataJson={testDataJson}
+                      loopContext={
+                        enclosingLoop
+                          ? {
+                              iterable: enclosingLoop.props.iterable || 'order.items',
+                              itemName: enclosingLoop.props.itemName || 'item',
+                            }
+                          : undefined
+                      }
                       onSelectVariable={handleVariableInsert}
                       onClose={() => setShowVarPicker(false)}
                     />

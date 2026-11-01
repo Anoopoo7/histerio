@@ -1,5 +1,5 @@
 import { generateId } from '../model/defaults';
-import { BuilderBlock, BuilderDocument, DropTarget } from '../model/types';
+import { BuilderBlock, BuilderDocument, DropTarget, LoopBlock } from '../model/types';
 
 export function cloneBlockWithNewIds(block: BuilderBlock): BuilderBlock {
   const newId = generateId(`block-${block.type}`);
@@ -46,6 +46,36 @@ export function findBlockInDoc(doc: BuilderDocument, blockId: string): BuilderBl
     for (const r of s.children || []) {
       for (const c of r.columns || []) {
         const found = findBlockRecursive(c.children || [], blockId);
+        if (found) return found;
+      }
+    }
+  }
+  return null;
+}
+
+export function findEnclosingLoop(doc: BuilderDocument, blockId: string): LoopBlock | null {
+  function searchBlocks(blocks: BuilderBlock[], targetId: string, currentLoop: LoopBlock | null): LoopBlock | null {
+    for (const b of blocks) {
+      if (b.id === targetId) {
+        return currentLoop;
+      }
+      if (b.type === 'loop') {
+        const found = searchBlocks(b.children || [], targetId, b);
+        if (found) return found;
+      } else if (b.type === 'if-else') {
+        const foundThen = searchBlocks(b.thenChildren || [], targetId, currentLoop);
+        if (foundThen) return foundThen;
+        const foundElse = searchBlocks(b.elseChildren || [], targetId, currentLoop);
+        if (foundElse) return foundElse;
+      }
+    }
+    return null;
+  }
+
+  for (const s of doc.children || []) {
+    for (const r of s.children || []) {
+      for (const c of r.columns || []) {
+        const found = searchBlocks(c.children || [], blockId, null);
         if (found) return found;
       }
     }

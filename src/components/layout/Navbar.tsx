@@ -1,23 +1,39 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Building2, ChevronDown, Plus, Menu, CheckCircle2, ShieldAlert } from 'lucide-react';
+import {
+  Building2,
+  ChevronDown,
+  Plus,
+  Menu,
+  CheckCircle2,
+  ShieldAlert,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from 'lucide-react';
 import { useOrganization } from '@/hooks/useOrganization';
 import { useAuth } from '@/hooks/useAuth';
 
 export interface NavbarProps {
   onOpenMobileSidebar: () => void;
   onOpenCreateOrgModal: () => void;
+  isSidebarCollapsed?: boolean;
+  onToggleSidebar?: () => void;
 }
 
-export function Navbar({ onOpenMobileSidebar, onOpenCreateOrgModal }: NavbarProps) {
+export function Navbar({
+  onOpenMobileSidebar,
+  onOpenCreateOrgModal,
+  isSidebarCollapsed = false,
+  onToggleSidebar,
+}: NavbarProps) {
   const { organizations, currentOrg, selectOrganization } = useOrganization();
   const { user } = useAuth();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   return (
     <header className="h-16 border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-md px-6 flex items-center justify-between sticky top-0 z-30">
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Mobile Sidebar Trigger */}
         <button
           onClick={onOpenMobileSidebar}
@@ -26,6 +42,22 @@ export function Navbar({ onOpenMobileSidebar, onOpenCreateOrgModal }: NavbarProp
         >
           <Menu className="w-5 h-5" />
         </button>
+
+        {/* Desktop Sidebar Toggle */}
+        {onToggleSidebar && (
+          <button
+            onClick={onToggleSidebar}
+            title={isSidebarCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+            aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className="hidden lg:flex text-zinc-400 hover:text-zinc-100 p-2 rounded-lg hover:bg-zinc-900 transition-colors"
+          >
+            {isSidebarCollapsed ? (
+              <PanelLeftOpen className="w-4 h-4" />
+            ) : (
+              <PanelLeftClose className="w-4 h-4" />
+            )}
+          </button>
+        )}
 
         {/* Organization Switcher Dropdown */}
         <div className="relative">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
 import { useOrganization } from '@/hooks/useOrganization';
@@ -10,6 +10,29 @@ import { CreateOrganizationModal } from './CreateOrganizationModal';
 import { LoadingSpinner, Button } from '@/components/ui';
 import { Building2, Plus } from 'lucide-react';
 
+const SIDEBAR_STORAGE_KEY = 'histeria_sidebar_collapsed';
+
+function subscribeSidebar(callback: () => void) {
+  window.addEventListener('storage', callback);
+  window.addEventListener('sidebar_toggle', callback);
+  return () => {
+    window.removeEventListener('storage', callback);
+    window.removeEventListener('sidebar_toggle', callback);
+  };
+}
+
+function getSidebarSnapshot(): boolean {
+  try {
+    return localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+function getSidebarServerSnapshot(): boolean {
+  return false;
+}
+
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const { needsOrganization, isLoading: orgLoading } = useOrganization();
@@ -17,6 +40,39 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isCreateOrgModalOpen, setIsCreateOrgModalOpen] = useState(false);
+
+  const isSidebarCollapsed = useSyncExternalStore(
+    subscribeSidebar,
+    getSidebarSnapshot,
+    getSidebarServerSnapshot
+  );
+
+  const toggleSidebar = () => {
+    try {
+      const current = getSidebarSnapshot();
+      localStorage.setItem(SIDEBAR_STORAGE_KEY, String(!current));
+      window.dispatchEvent(new Event('sidebar_toggle'));
+    } catch {
+      // ignore storage errors
+    }
+  };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Toggle sidebar with Cmd+B (Mac) or Ctrl+B (Windows/Linux)
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        const target = e.target as HTMLElement;
+        if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+          return;
+        }
+        e.preventDefault();
+        toggleSidebar();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) {
@@ -40,7 +96,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     <div className="flex h-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
       {/* Desktop Sidebar */}
       <div className="hidden lg:block h-full">
-        <Sidebar />
+        <Sidebar
+          isCollapsed={isSidebarCollapsed}
+          onToggleCollapse={toggleSidebar}
+        />
       </div>
 
       {/* Mobile Drawer Sidebar */}
@@ -51,7 +110,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
             onClick={() => setIsMobileSidebarOpen(false)}
           />
           <div className="relative z-10 w-64 h-full">
-            <Sidebar onCloseMobile={() => setIsMobileSidebarOpen(false)} />
+            <Sidebar
+              onCloseMobile={() => setIsMobileSidebarOpen(false)}
+              isCollapsed={false}
+            />
           </div>
         </div>
       )}
@@ -61,6 +123,8 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <Navbar
           onOpenMobileSidebar={() => setIsMobileSidebarOpen(true)}
           onOpenCreateOrgModal={() => setIsCreateOrgModalOpen(true)}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={toggleSidebar}
         />
 
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">

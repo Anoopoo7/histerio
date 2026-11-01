@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { BuilderColumn, BuilderDocument, BuilderSection, SelectedTarget } from '../model/types';
 import { CanvasSection } from './CanvasSection';
-import { Code2, Sparkles } from 'lucide-react';
+import { Code2, Sparkles, Plus } from 'lucide-react';
+import { useBuilderDnd } from '../context/BuilderDndContext';
 
 export interface EmailCanvasProps {
   doc: BuilderDocument;
@@ -37,6 +38,8 @@ export function EmailCanvas({
   onAddRow,
 }: EmailCanvasProps) {
   const [renderMode, setRenderMode] = useState<'raw' | 'rendered'>('rendered');
+  const { isDragging, activeDropTarget, handleDragOver, handleDrop } = useBuilderDnd();
+
   const settings = doc.settings;
   const canvasWidth = deviceView === 'mobile' ? 360 : settings.width || 600;
 
@@ -45,6 +48,19 @@ export function EmailCanvas({
   const selectedColumnId = selectedTarget?.type === 'column' ? selectedTarget.id : null;
   const selectedBlockId = selectedTarget?.type === 'block' ? selectedTarget.id : null;
 
+  const isDocTarget = activeDropTarget?.type === 'document';
+
+  const renderSectionDropIndicator = (slotIndex: number) => {
+    if (!isDocTarget || activeDropTarget?.index !== slotIndex) return null;
+    return (
+      <div className="py-2 my-1 transition-all duration-150 animate-in fade-in zoom-in-95 pointer-events-none">
+        <div className="h-1.5 bg-indigo-500 rounded-full shadow-lg shadow-indigo-500/50 flex items-center justify-center">
+          <span className="w-3 h-3 rounded-full bg-indigo-500 ring-2 ring-white shadow-xs" />
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div
       onClick={() => onSelectTarget({ type: 'document' })}
@@ -52,7 +68,10 @@ export function EmailCanvas({
       className="flex-1 overflow-y-auto p-6 md:p-10 flex flex-col items-center select-none"
     >
       {/* Canvas View Mode Toggle Switch */}
-      <div className="mb-4 flex items-center bg-zinc-900 border border-zinc-800 p-1 rounded-xl shadow-lg z-10" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="mb-4 flex items-center bg-zinc-900 border border-zinc-800 p-1 rounded-xl shadow-lg z-10"
+        onClick={(e) => e.stopPropagation()}
+      >
         <button
           type="button"
           onClick={() => setRenderMode('rendered')}
@@ -92,46 +111,92 @@ export function EmailCanvas({
         }`}
       >
         {doc.children.length === 0 ? (
-          <div className="border-2 border-dashed border-zinc-300 rounded-2xl p-12 text-center text-xs text-zinc-400">
-            Empty Email Document. Drag a Section or Layout structure onto the canvas.
+          <div
+            onDragOver={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleDragOver({ type: 'document', index: 0 }, e);
+            }}
+            onDrop={(e) => handleDrop({ type: 'document', index: 0 }, e)}
+            className={`border-2 border-dashed rounded-2xl p-12 text-center text-xs transition-all ${
+              isDocTarget && activeDropTarget.index === 0
+                ? 'border-indigo-500 bg-indigo-500/10 text-indigo-300 scale-[1.01]'
+                : 'border-zinc-300 text-zinc-400'
+            }`}
+          >
+            <Plus className="w-8 h-8 mx-auto mb-2 text-indigo-400 opacity-60" />
+            <p className="font-semibold text-sm text-zinc-300">Empty Email Document</p>
+            <p className="mt-1 text-zinc-400">Drag a layout structure, snippet, or content block right here</p>
           </div>
         ) : (
-          doc.children.map((section: BuilderSection) => (
-            <CanvasSection
-              key={section.id}
-              section={section}
-              containerWidthPx={canvasWidth}
-              selectedRowId={selectedRowId}
-              selectedColumnId={selectedColumnId}
-              selectedBlockId={selectedBlockId}
-              isSelected={selectedSectionId === section.id}
-              testDataJson={testDataJson}
-              renderMode={renderMode}
-              onSelectSection={() => onSelectTarget({ type: 'section', id: section.id })}
-              onSelectRow={(rowId) => onSelectTarget({ type: 'row', id: rowId, sectionId: section.id })}
-              onSelectColumn={(colId) =>
-                onSelectTarget({ type: 'column', id: colId, rowId: '', sectionId: section.id })
-              }
-              onSelectBlock={(blockId) =>
-                onSelectTarget({ type: 'block', id: blockId, columnId: '', rowId: '', sectionId: section.id })
-              }
-              onUpdateRowColumns={onUpdateRowColumns}
-              onUpdateBlockProps={onUpdateBlockProps}
-              onMoveBlock={onMoveBlock}
-              onDuplicateBlock={onDuplicateBlock}
-              onDeleteBlock={onDeleteBlock}
-              onMoveSection={
-                doc.children.length > 1
-                  ? (dir) => onMoveSection(section.id, dir)
-                  : undefined
-              }
-              onDuplicateSection={() => onDuplicateSection(section.id)}
-              onDeleteSection={
-                doc.children.length > 1 ? () => onDeleteSection(section.id) : undefined
-              }
-              onAddRow={(layoutType) => onAddRow(section.id, layoutType)}
-            />
-          ))
+          <>
+            {doc.children.map((section: BuilderSection, sIdx: number) => (
+              <React.Fragment key={section.id}>
+                {/* Drop indicator before this section */}
+                {renderSectionDropIndicator(sIdx)}
+
+                <CanvasSection
+                  section={section}
+                  containerWidthPx={canvasWidth}
+                  selectedRowId={selectedRowId}
+                  selectedColumnId={selectedColumnId}
+                  selectedBlockId={selectedBlockId}
+                  isSelected={selectedSectionId === section.id}
+                  testDataJson={testDataJson}
+                  renderMode={renderMode}
+                  onSelectSection={() => onSelectTarget({ type: 'section', id: section.id })}
+                  onSelectRow={(rowId) => onSelectTarget({ type: 'row', id: rowId, sectionId: section.id })}
+                  onSelectColumn={(colId) =>
+                    onSelectTarget({ type: 'column', id: colId, rowId: '', sectionId: section.id })
+                  }
+                  onSelectBlock={(blockId) =>
+                    onSelectTarget({ type: 'block', id: blockId, columnId: '', rowId: '', sectionId: section.id })
+                  }
+                  onUpdateRowColumns={onUpdateRowColumns}
+                  onUpdateBlockProps={onUpdateBlockProps}
+                  onMoveBlock={onMoveBlock}
+                  onDuplicateBlock={onDuplicateBlock}
+                  onDeleteBlock={onDeleteBlock}
+                  onMoveSection={
+                    doc.children.length > 1
+                      ? (dir) => onMoveSection(section.id, dir)
+                      : undefined
+                  }
+                  onDuplicateSection={() => onDuplicateSection(section.id)}
+                  onDeleteSection={
+                    doc.children.length > 1 ? () => onDeleteSection(section.id) : undefined
+                  }
+                  onAddRow={(layoutType) => onAddRow(section.id, layoutType)}
+                />
+              </React.Fragment>
+            ))}
+
+            {/* Drop indicator after last section */}
+            {renderSectionDropIndicator(doc.children.length)}
+
+            {/* Bottom canvas drop strip */}
+            {isDragging && (
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDragOver({ type: 'document', index: doc.children.length }, e);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleDrop({ type: 'document', index: doc.children.length }, e);
+                }}
+                className={`py-3 text-center text-xs rounded-xl border-2 border-dashed transition-all ${
+                  isDocTarget && activeDropTarget.index === doc.children.length
+                    ? 'border-indigo-500 bg-indigo-500/15 text-indigo-400 font-semibold'
+                    : 'border-zinc-300/60 text-zinc-400 hover:border-indigo-400/50'
+                }`}
+              >
+                + Drop here to add to bottom of email
+              </div>
+            )}
+          </>
         )}
       </div>
     </div>

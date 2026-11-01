@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { ArrowUp, ArrowDown, Copy, Trash2, Layers } from 'lucide-react';
+import { ArrowUp, ArrowDown, Copy, Trash2, Layers, GripVertical } from 'lucide-react';
 
 export interface BlockToolbarProps {
   label: string;
@@ -10,6 +10,7 @@ export interface BlockToolbarProps {
   onDuplicate?: () => void;
   onDelete?: () => void;
   onSelectParent?: () => void;
+  onDragStartHandle?: (e: React.DragEvent) => void;
 }
 
 export function BlockToolbar({
@@ -19,15 +20,28 @@ export function BlockToolbar({
   onDuplicate,
   onDelete,
   onSelectParent,
+  onDragStartHandle,
 }: BlockToolbarProps) {
   return (
     <div
-      className="absolute -top-9 right-2 z-30 flex items-center gap-1 p-1 bg-indigo-950/90 border border-indigo-500/50 rounded-lg shadow-xl text-xs text-zinc-100 backdrop-blur-xs select-none"
+      className="absolute -top-9 right-2 z-30 flex items-center gap-1 p-1 bg-indigo-950/95 border border-indigo-500/60 rounded-lg shadow-xl text-xs text-zinc-100 backdrop-blur-xs select-none"
       onClick={(e) => e.stopPropagation()}
     >
-      <span className="px-2 font-semibold text-[11px] text-indigo-300 uppercase tracking-wider border-r border-indigo-800/80">
-        {label}
-      </span>
+      {onDragStartHandle ? (
+        <div
+          draggable
+          onDragStart={onDragStartHandle}
+          className="flex items-center gap-1 px-1.5 py-0.5 font-semibold text-[11px] text-indigo-300 uppercase tracking-wider border-r border-indigo-800/80 cursor-grab active:cursor-grabbing hover:bg-indigo-800/50 rounded transition-colors"
+          title="Drag to reposition anywhere"
+        >
+          <GripVertical className="w-3.5 h-3.5 text-indigo-400" />
+          <span>{label}</span>
+        </div>
+      ) : (
+        <span className="px-2 font-semibold text-[11px] text-indigo-300 uppercase tracking-wider border-r border-indigo-800/80">
+          {label}
+        </span>
+      )}
 
       {onSelectParent && (
         <button

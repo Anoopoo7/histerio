@@ -231,9 +231,12 @@ export interface BuilderDocument {
 
 export type LayoutType = 'section' | 'row-1' | 'row-2' | 'row-3';
 
+export type PresetSnippetType = 'order-summary-table' | 'customer-greeting' | 'receipt-callout' | 'product-card';
+
 export type DragItem =
   | { kind: 'new-block'; blockType: BuilderBlockType }
   | { kind: 'new-layout'; layoutType: LayoutType }
+  | { kind: 'new-preset'; snippetType: PresetSnippetType }
   | { kind: 'move-block'; blockId: string; sourceColumnId: string }
   | { kind: 'move-row'; rowId: string; sourceSectionId: string }
   | { kind: 'move-section'; sectionId: string };

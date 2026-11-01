@@ -26,14 +26,16 @@ import {
   LayoutType,
   SelectedTarget,
   TextProps,
+  DragItem,
+  DropTarget,
 } from '../model/types';
 import { validateBuilderDocument } from '../model/validation';
 import { generateEmailHtml } from '../renderer/renderEmail';
 import { validateVariableSyntax } from '../utils/variableUtils';
 import { useUndoRedo } from '../history/useUndoRedo';
-import { usePointerDrag } from '../hooks/usePointerDrag';
+import { BuilderDndProvider } from '../context/BuilderDndContext';
 import { BuilderTopBar } from './BuilderTopBar';
-import { ComponentPalette } from './ComponentPalette';
+import { ComponentPalette, PresetSnippetType } from './ComponentPalette';
 import { EmailCanvas } from './EmailCanvas';
 import { PropertiesPanel } from './PropertiesPanel';
 import { PreviewModal } from './PreviewModal';
@@ -41,6 +43,71 @@ import { HtmlViewerModal } from './HtmlViewerModal';
 import { SendApiCodeModal } from '@/components/SendApiCodeModal';
 
 import { DEFAULT_MOCK_DATA_JSON } from '../utils/variableUtils';
+
+function createPresetSnippetSection(snippetType: PresetSnippetType): BuilderSection {
+  if (snippetType === 'customer-greeting') {
+    const heading = createBlock('heading');
+    (heading.props as HeadingProps).text = 'Welcome {{customer.name}}!';
+    (heading.props as HeadingProps).level = 'h2';
+
+    const subtext = createBlock('text');
+    (subtext.props as TextProps).content =
+      'Thank you for your order #{{order.id}}. Your order status is currently {{order.status}}. Order Date: {{order.date}}.';
+
+    return createSection([createOneColumnRow([heading, subtext])]);
+  } else if (snippetType === 'receipt-callout') {
+    const heading = createBlock('heading');
+    (heading.props as HeadingProps).text = 'Grand Total Paid: {{order.total}}';
+    (heading.props as HeadingProps).level = 'h3';
+    (heading.props as HeadingProps).color = '#4f46e5';
+
+    const button = createBlock('button');
+    (button.props as ButtonProps).text = 'View Order #{{order.id}}';
+    (button.props as ButtonProps).url = 'https://example.com/orders/{{order.id}}';
+
+    return createSection([createOneColumnRow([heading, button])]);
+  } else {
+    // order-summary-table
+    const tableBlock = createBlock('text');
+    (tableBlock.props as TextProps).content = `
+<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; margin: 12px 0; font-size: 14px; color: #374151; width: 100%;">
+  <thead>
+    <tr style="background-color: #f3f4f6; border-bottom: 2px solid #e5e7eb; text-align: left;">
+      <th style="padding: 10px; font-weight: 600;">Item Name</th>
+      <th style="padding: 10px; font-weight: 600; text-align: center;">Qty</th>
+      <th style="padding: 10px; font-weight: 600; text-align: right;">Price</th>
+      <th style="padding: 10px; font-weight: 600; text-align: right;">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    {{#each order.items}}
+    <tr style="border-bottom: 1px solid #f3f4f6;">
+      <td style="padding: 10px; font-weight: 500;">{{this.name}}</td>
+      <td style="padding: 10px; text-align: center;">{{this.quantity}}</td>
+      <td style="padding: 10px; text-align: right;">{{this.price}}</td>
+      <td style="padding: 10px; text-align: right; font-weight: 600;">{{this.total}}</td>
+    </tr>
+    {{/each}}
+  </tbody>
+  <tfoot>
+    <tr>
+      <td colspan="3" style="padding: 10px; text-align: right; font-weight: 600; color: #6b7280;">Subtotal:</td>
+      <td style="padding: 10px; text-align: right; font-weight: 600;">{{order.subtotal}}</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="padding: 10px; text-align: right; font-weight: 600; color: #6b7280;">Shipping:</td>
+      <td style="padding: 10px; text-align: right; font-weight: 600;">{{order.shipping}}</td>
+    </tr>
+    <tr>
+      <td colspan="3" style="padding: 10px; text-align: right; font-weight: 700; color: #111827; font-size: 16px;">Grand Total:</td>
+      <td style="padding: 10px; text-align: right; font-weight: 700; color: #4f46e5; font-size: 16px;">{{order.total}}</td>
+    </tr>
+  </tfoot>
+</table>`.trim();
+
+    return createSection([createOneColumnRow([tableBlock])]);
+  }
+}
 
 export interface VisualEmailBuilderProps {
   template: Template;
@@ -76,13 +143,14 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
 
   const [mockDataJson, setMockDataJson] = useState(DEFAULT_MOCK_DATA_JSON);
 
-  const { startDrag } = usePointerDrag();
-
   // Mark dirty when doc or subject changes
-  const handleDocChange = useCallback((updater: (prev: BuilderDocument) => BuilderDocument) => {
-    setDoc(updater);
-    setIsDirty(true);
-  }, [setDoc]);
+  const handleDocChange = useCallback(
+    (updater: (prev: BuilderDocument) => BuilderDocument) => {
+      setDoc(updater);
+      setIsDirty(true);
+    },
+    [setDoc]
+  );
 
   const handleSubjectChange = (val: string) => {
     setSubject(val);
@@ -101,7 +169,190 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
   }, [isDirty]);
 
-  // Insert Layout structure
+  // Unified Drag and Drop Handler
+  const handleUnifiedDrop = useCallback(
+    (item: DragItem, target: DropTarget) => {
+      handleDocChange((prev) => {
+        // 1. Dropping a NEW BLOCK from Palette
+        if (item.kind === 'new-block') {
+          const newBlock = createBlock(item.blockType);
+
+          if (target.type === 'column') {
+            const nextDoc: BuilderDocument = {
+              ...prev,
+              children: prev.children.map((s) => ({
+                ...s,
+                children: s.children.map((r) => ({
+                  ...r,
+                  columns: r.columns.map((c) => {
+                    if (c.id !== target.columnId) return c;
+                    const newChildren = [...c.children];
+                    const insertIdx = Math.max(0, Math.min(target.index, newChildren.length));
+                    newChildren.splice(insertIdx, 0, newBlock);
+                    return { ...c, children: newChildren };
+                  }),
+                })),
+              })),
+            };
+            setTimeout(() => {
+              setSelectedTarget({
+                type: 'block',
+                id: newBlock.id,
+                columnId: target.columnId,
+                rowId: '',
+                sectionId: '',
+              });
+            }, 0);
+            return nextDoc;
+          }
+
+          if (target.type === 'section') {
+            const newRow = createOneColumnRow([newBlock]);
+            return {
+              ...prev,
+              children: prev.children.map((s) => {
+                if (s.id !== target.sectionId) return s;
+                const newRows = [...s.children];
+                const insertIdx = Math.max(0, Math.min(target.index, newRows.length));
+                newRows.splice(insertIdx, 0, newRow);
+                return { ...s, children: newRows };
+              }),
+            };
+          }
+
+          if (target.type === 'document') {
+            const newSection = createSection([createOneColumnRow([newBlock])]);
+            const newSections = [...prev.children];
+            const insertIdx = Math.max(0, Math.min(target.index, newSections.length));
+            newSections.splice(insertIdx, 0, newSection);
+            return { ...prev, children: newSections };
+          }
+        }
+
+        // 2. MOVING an existing block across or within columns
+        if (item.kind === 'move-block') {
+          if (target.type !== 'column') return prev;
+
+          let movedBlock: BuilderBlock | null = null;
+
+          // Remove block from source column
+          const docWithoutBlock: BuilderDocument = {
+            ...prev,
+            children: prev.children.map((s) => ({
+              ...s,
+              children: s.children.map((r) => ({
+                ...r,
+                columns: r.columns.map((c) => {
+                  if (c.id !== item.sourceColumnId) return c;
+                  const idx = c.children.findIndex((b) => b.id === item.blockId);
+                  if (idx !== -1) {
+                    movedBlock = c.children[idx];
+                    return {
+                      ...c,
+                      children: c.children.filter((b) => b.id !== item.blockId),
+                    };
+                  }
+                  return c;
+                }),
+              })),
+            })),
+          };
+
+          if (!movedBlock) return prev;
+
+          // Insert into target column
+          const docWithBlock: BuilderDocument = {
+            ...docWithoutBlock,
+            children: docWithoutBlock.children.map((s) => ({
+              ...s,
+              children: s.children.map((r) => ({
+                ...r,
+                columns: r.columns.map((c) => {
+                  if (c.id !== target.columnId) return c;
+                  const newChildren = [...c.children];
+                  const insertIdx = Math.max(0, Math.min(target.index, newChildren.length));
+                  newChildren.splice(insertIdx, 0, movedBlock!);
+                  return { ...c, children: newChildren };
+                }),
+              })),
+            })),
+          };
+
+          setTimeout(() => {
+            setSelectedTarget({
+              type: 'block',
+              id: item.blockId,
+              columnId: target.columnId,
+              rowId: '',
+              sectionId: '',
+            });
+          }, 0);
+          return docWithBlock;
+        }
+
+        // 3. Dropping a NEW LAYOUT
+        if (item.kind === 'new-layout') {
+          let newRow: BuilderRow;
+          if (item.layoutType === 'row-1') newRow = createOneColumnRow();
+          else if (item.layoutType === 'row-2') newRow = createTwoColumnRow();
+          else if (item.layoutType === 'row-3') newRow = createThreeColumnRow();
+          else {
+            // New section
+            const newSec = createSection();
+            const newSecs = [...prev.children];
+            const insertIdx = Math.max(0, Math.min(target.index, newSecs.length));
+            newSecs.splice(insertIdx, 0, newSec);
+            return { ...prev, children: newSecs };
+          }
+
+          if (target.type === 'section') {
+            return {
+              ...prev,
+              children: prev.children.map((s) => {
+                if (s.id !== target.sectionId) return s;
+                const newRows = [...s.children];
+                const insertIdx = Math.max(0, Math.min(target.index, newRows.length));
+                newRows.splice(insertIdx, 0, newRow);
+                return { ...s, children: newRows };
+              }),
+            };
+          }
+
+          // If dropped onto document:
+          const newSec = createSection([newRow]);
+          const newSecs = [...prev.children];
+          const insertIdx = Math.max(0, Math.min(target.index, newSecs.length));
+          newSecs.splice(insertIdx, 0, newSec);
+          return { ...prev, children: newSecs };
+        }
+
+        // 4. Dropping a NEW PRESET SNIPPET
+        if (item.kind === 'new-preset') {
+          const newSec = createPresetSnippetSection(item.snippetType);
+          const newSecs = [...prev.children];
+          const insertIdx = Math.max(0, Math.min(target.index, newSecs.length));
+          newSecs.splice(insertIdx, 0, newSec);
+          return { ...prev, children: newSecs };
+        }
+
+        // 5. MOVING an existing section
+        if (item.kind === 'move-section') {
+          const currentIdx = prev.children.findIndex((s) => s.id === item.sectionId);
+          if (currentIdx === -1) return prev;
+          const updated = [...prev.children];
+          const [movedSec] = updated.splice(currentIdx, 1);
+          const insertIdx = Math.max(0, Math.min(target.index, updated.length));
+          updated.splice(insertIdx, 0, movedSec);
+          return { ...prev, children: updated };
+        }
+
+        return prev;
+      });
+    },
+    [handleDocChange]
+  );
+
+  // Insert Layout structure (click)
   const handleAddLayout = (layoutType: LayoutType) => {
     handleDocChange((prev) => {
       let newRow: BuilderRow;
@@ -129,7 +380,7 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
     });
   };
 
-  // Insert Block directly or into selected column
+  // Insert Block directly into selected target or sensible default (click)
   const handleAddBlock = (blockType: BuilderBlockType) => {
     const newBlock = createBlock(blockType);
     handleDocChange((prev) => {
@@ -140,6 +391,54 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
         };
       }
 
+      // If user has a block selected, place immediately after it in the same column
+      if (selectedTarget?.type === 'block') {
+        let placed = false;
+        const updatedDoc = {
+          ...prev,
+          children: prev.children.map((s) => ({
+            ...s,
+            children: s.children.map((r) => ({
+              ...r,
+              columns: r.columns.map((c) => {
+                const bIdx = c.children.findIndex((b) => b.id === selectedTarget.id);
+                if (bIdx !== -1) {
+                  placed = true;
+                  const newChildren = [...c.children];
+                  newChildren.splice(bIdx + 1, 0, newBlock);
+                  return { ...c, children: newChildren };
+                }
+                return c;
+              }),
+            })),
+          })),
+        };
+        if (placed) return updatedDoc;
+      }
+
+      // If user has a column selected, append to that column
+      if (selectedTarget?.type === 'column') {
+        let placed = false;
+        const updatedDoc = {
+          ...prev,
+          children: prev.children.map((s) => ({
+            ...s,
+            children: s.children.map((r) => ({
+              ...r,
+              columns: r.columns.map((c) => {
+                if (c.id === selectedTarget.id) {
+                  placed = true;
+                  return { ...c, children: [...c.children, newBlock] };
+                }
+                return c;
+              }),
+            })),
+          })),
+        };
+        if (placed) return updatedDoc;
+      }
+
+      // Fallback: place into last column of last row
       const updated = [...prev.children];
       const lastSecIdx = updated.length - 1;
       const sec = updated[lastSecIdx];
@@ -180,73 +479,10 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
     setSelectedTarget({ type: 'block', id: newBlock.id, columnId: '', rowId: '', sectionId: '' });
   };
 
-  // Insert Dynamic Preset Snippet (recursive items table, customer greeting, receipt callout)
-  const handleAddPresetSnippet = (snippetType: 'order-summary-table' | 'customer-greeting' | 'receipt-callout' | 'product-card') => {
+  // Insert Dynamic Preset Snippet (click)
+  const handleAddPresetSnippet = (snippetType: PresetSnippetType) => {
     handleDocChange((prev) => {
-      let newSection: BuilderSection;
-
-      if (snippetType === 'customer-greeting') {
-        const heading = createBlock('heading');
-        (heading.props as HeadingProps).text = 'Welcome {{customer.name}}!';
-        (heading.props as HeadingProps).level = 'h2';
-
-        const subtext = createBlock('text');
-        (subtext.props as TextProps).content = 'Thank you for your order #{{order.id}}. Your order status is currently {{order.status}}. Order Date: {{order.date}}.';
-
-        newSection = createSection([createOneColumnRow([heading, subtext])]);
-      } else if (snippetType === 'receipt-callout') {
-        const heading = createBlock('heading');
-        (heading.props as HeadingProps).text = 'Grand Total Paid: {{order.total}}';
-        (heading.props as HeadingProps).level = 'h3';
-        (heading.props as HeadingProps).color = '#4f46e5';
-
-        const button = createBlock('button');
-        (button.props as ButtonProps).text = 'View Order #{{order.id}}';
-        (button.props as ButtonProps).url = 'https://example.com/orders/{{order.id}}';
-
-        newSection = createSection([createOneColumnRow([heading, button])]);
-      } else {
-        // order-summary-table
-        const tableBlock = createBlock('text');
-        (tableBlock.props as TextProps).content = `
-<table border="0" cellpadding="0" cellspacing="0" width="100%" style="border-collapse: collapse; margin: 12px 0; font-size: 14px; color: #374151; width: 100%;">
-  <thead>
-    <tr style="background-color: #f3f4f6; border-bottom: 2px solid #e5e7eb; text-align: left;">
-      <th style="padding: 10px; font-weight: 600;">Item Name</th>
-      <th style="padding: 10px; font-weight: 600; text-align: center;">Qty</th>
-      <th style="padding: 10px; font-weight: 600; text-align: right;">Price</th>
-      <th style="padding: 10px; font-weight: 600; text-align: right;">Total</th>
-    </tr>
-  </thead>
-  <tbody>
-    {{#each order.items}}
-    <tr style="border-bottom: 1px solid #f3f4f6;">
-      <td style="padding: 10px; font-weight: 500;">{{this.name}}</td>
-      <td style="padding: 10px; text-align: center;">{{this.quantity}}</td>
-      <td style="padding: 10px; text-align: right;">{{this.price}}</td>
-      <td style="padding: 10px; text-align: right; font-weight: 600;">{{this.total}}</td>
-    </tr>
-    {{/each}}
-  </tbody>
-  <tfoot>
-    <tr>
-      <td colspan="3" style="padding: 10px; text-align: right; font-weight: 600; color: #6b7280;">Subtotal:</td>
-      <td style="padding: 10px; text-align: right; font-weight: 600;">{{order.subtotal}}</td>
-    </tr>
-    <tr>
-      <td colspan="3" style="padding: 10px; text-align: right; font-weight: 600; color: #6b7280;">Shipping:</td>
-      <td style="padding: 10px; text-align: right; font-weight: 600;">{{order.shipping}}</td>
-    </tr>
-    <tr>
-      <td colspan="3" style="padding: 10px; text-align: right; font-weight: 700; color: #111827; font-size: 16px;">Grand Total:</td>
-      <td style="padding: 10px; text-align: right; font-weight: 700; color: #4f46e5; font-size: 16px;">{{order.total}}</td>
-    </tr>
-  </tfoot>
-</table>`.trim();
-
-        newSection = createSection([createOneColumnRow([tableBlock])]);
-      }
-
+      const newSection = createPresetSnippetSection(snippetType);
       return {
         ...prev,
         children: [...prev.children, newSection],
@@ -514,97 +750,98 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
   const compiledHtml = useMemo(() => generateEmailHtml(doc), [doc]);
 
   return (
-    <div className="flex flex-col h-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
-      {/* Top Action Header */}
-      <BuilderTopBar
-        templateName={template.name}
-        templateStatus={template.status}
-        versionNumber={initialVersionDetail?.version}
-        subject={subject}
-        onSubjectChange={handleSubjectChange}
-        deviceView={deviceView}
-        onDeviceViewChange={setDeviceView}
-        viewTab="design"
-        onViewTabChange={(tab) => {
-          if (tab === 'preview') setIsPreviewOpen(true);
-          else if (tab === 'html') setIsHtmlOpen(true);
-        }}
-        canUndo={canUndo}
-        canRedo={canRedo}
-        onUndo={undo}
-        onRedo={redo}
-        isDirty={isDirty}
-        isSaving={isSaving}
-        onSave={handleSave}
-        onSendTestEmail={() => setIsTestEmailOpen(true)}
-      />
-
-      {/* Main Visual Editor Workspace */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Left: Palette Panel */}
-        <ComponentPalette
-          onStartDrag={(item, e) => startDrag(item, e)}
-          onAddLayout={handleAddLayout}
-          onAddBlock={handleAddBlock}
-          onAddPresetSnippet={handleAddPresetSnippet}
-        />
-
-        {/* Center: Email Editing Canvas */}
-        <EmailCanvas
-          doc={doc}
-          selectedTarget={selectedTarget}
+    <BuilderDndProvider onDropItem={handleUnifiedDrop}>
+      <div className="flex flex-col h-screen bg-zinc-950 text-zinc-100 overflow-hidden font-sans">
+        {/* Top Action Header */}
+        <BuilderTopBar
+          templateName={template.name}
+          templateStatus={template.status}
+          versionNumber={initialVersionDetail?.version}
+          subject={subject}
+          onSubjectChange={handleSubjectChange}
           deviceView={deviceView}
-          testDataJson={sampleJson}
-          onSelectTarget={setSelectedTarget}
-          onUpdateRowColumns={handleUpdateRowColumns}
-          onUpdateBlockProps={handleUpdateBlockProps}
-          onMoveBlock={handleMoveBlock}
-          onDuplicateBlock={handleDuplicateBlock}
-          onDeleteBlock={handleDeleteBlock}
-          onMoveSection={handleMoveSection}
-          onDuplicateSection={handleDuplicateSection}
-          onDeleteSection={handleDeleteSection}
-          onAddRow={handleAddRowToSection}
+          onDeviceViewChange={setDeviceView}
+          viewTab="design"
+          onViewTabChange={(tab) => {
+            if (tab === 'preview') setIsPreviewOpen(true);
+            else if (tab === 'html') setIsHtmlOpen(true);
+          }}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          onUndo={undo}
+          onRedo={redo}
+          isDirty={isDirty}
+          isSaving={isSaving}
+          onSave={handleSave}
+          onSendTestEmail={() => setIsTestEmailOpen(true)}
         />
 
-        {/* Right: Properties Inspector Panel */}
-        {selectedTarget && (
-          <PropertiesPanel
+        {/* Main Visual Editor Workspace */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* Left: Palette Panel */}
+          <ComponentPalette
+            onAddLayout={handleAddLayout}
+            onAddBlock={handleAddBlock}
+            onAddPresetSnippet={handleAddPresetSnippet}
+          />
+
+          {/* Center: Email Editing Canvas */}
+          <EmailCanvas
             doc={doc}
             selectedTarget={selectedTarget}
+            deviceView={deviceView}
             testDataJson={sampleJson}
-            onUpdateTestDataJson={setSampleJson}
-            onUpdateDocumentSettings={handleUpdateDocumentSettings}
-            onUpdateSectionProps={handleUpdateSectionProps}
-            onUpdateRowProps={handleUpdateRowProps}
-            onUpdateColumnProps={handleUpdateColumnProps}
+            onSelectTarget={setSelectedTarget}
+            onUpdateRowColumns={handleUpdateRowColumns}
             onUpdateBlockProps={handleUpdateBlockProps}
-            onClose={() => setSelectedTarget(null)}
+            onMoveBlock={handleMoveBlock}
+            onDuplicateBlock={handleDuplicateBlock}
+            onDeleteBlock={handleDeleteBlock}
+            onMoveSection={handleMoveSection}
+            onDuplicateSection={handleDuplicateSection}
+            onDeleteSection={handleDeleteSection}
+            onAddRow={handleAddRowToSection}
           />
-        )}
+
+          {/* Right: Properties Inspector Panel */}
+          {selectedTarget && (
+            <PropertiesPanel
+              doc={doc}
+              selectedTarget={selectedTarget}
+              testDataJson={sampleJson}
+              onUpdateTestDataJson={setSampleJson}
+              onUpdateDocumentSettings={handleUpdateDocumentSettings}
+              onUpdateSectionProps={handleUpdateSectionProps}
+              onUpdateRowProps={handleUpdateRowProps}
+              onUpdateColumnProps={handleUpdateColumnProps}
+              onUpdateBlockProps={handleUpdateBlockProps}
+              onClose={() => setSelectedTarget(null)}
+            />
+          )}
+        </div>
+
+        {/* Modals */}
+        <PreviewModal
+          isOpen={isPreviewOpen}
+          onClose={() => setIsPreviewOpen(false)}
+          html={compiledHtml}
+          sampleJson={sampleJson}
+        />
+
+        <HtmlViewerModal
+          isOpen={isHtmlOpen}
+          onClose={() => setIsHtmlOpen(false)}
+          html={compiledHtml}
+        />
+
+        {/* Code Modal */}
+        <SendApiCodeModal
+          isOpen={isTestEmailOpen}
+          onClose={() => setIsTestEmailOpen(false)}
+          template={template}
+          sampleDataJson={mockDataJson}
+        />
       </div>
-
-      {/* Modals */}
-      <PreviewModal
-        isOpen={isPreviewOpen}
-        onClose={() => setIsPreviewOpen(false)}
-        html={compiledHtml}
-        sampleJson={sampleJson}
-      />
-
-      <HtmlViewerModal
-        isOpen={isHtmlOpen}
-        onClose={() => setIsHtmlOpen(false)}
-        html={compiledHtml}
-      />
-
-      {/* Code Modal */}
-      <SendApiCodeModal
-        isOpen={isTestEmailOpen}
-        onClose={() => setIsTestEmailOpen(false)}
-        template={template}
-        sampleDataJson={mockDataJson}
-      />
-    </div>
+    </BuilderDndProvider>
   );
 }

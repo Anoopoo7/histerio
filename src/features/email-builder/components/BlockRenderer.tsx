@@ -15,9 +15,13 @@ import {
 } from '../model/types';
 import { BlockToolbar } from './BlockToolbar';
 import { replaceVariablesWithMockData } from '../utils/variableUtils';
+import { useBuilderDnd } from '../context/BuilderDndContext';
+import { GripVertical } from 'lucide-react';
 
 export interface BlockRendererProps {
   block: BuilderBlock;
+  columnId: string;
+  index: number;
   columnWidthPx: number;
   isSelected: boolean;
   testDataJson?: string;
@@ -33,6 +37,8 @@ export interface BlockRendererProps {
 
 export function BlockRenderer({
   block,
+  columnId,
+  index,
   columnWidthPx,
   isSelected,
   testDataJson,
@@ -46,6 +52,10 @@ export function BlockRenderer({
   onSelectParent,
 }: BlockRendererProps) {
   const isResizingImageRef = useRef(false);
+  const { startDrag, endDrag, activeDragItem, handleDragOver, handleDrop } = useBuilderDnd();
+
+  const isThisBlockDragging =
+    activeDragItem?.kind === 'move-block' && activeDragItem.blockId === block.id;
 
   const evalText = (rawStr: string | undefined | null) => {
     if (!rawStr) return '';
@@ -53,6 +63,28 @@ export function BlockRenderer({
       return replaceVariablesWithMockData(rawStr, testDataJson);
     }
     return rawStr;
+  };
+
+  const handleDragStartBlock = (e: React.DragEvent) => {
+    startDrag({ kind: 'move-block', blockId: block.id, sourceColumnId: columnId }, e);
+  };
+
+  const handleDragOverBlock = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const targetIndex = e.clientY < midY ? index : index + 1;
+    handleDragOver({ type: 'column', columnId, index: targetIndex }, e);
+  };
+
+  const handleDropOnBlock = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const rect = e.currentTarget.getBoundingClientRect();
+    const midY = rect.top + rect.height / 2;
+    const targetIndex = e.clientY < midY ? index : index + 1;
+    handleDrop({ type: 'column', columnId, index: targetIndex }, e);
   };
 
   const handlePointerDownResize = (e: React.PointerEvent) => {
@@ -278,16 +310,31 @@ export function BlockRenderer({
 
   return (
     <div
+      draggable
+      onDragStart={handleDragStartBlock}
+      onDragEnd={endDrag}
+      onDragOver={handleDragOverBlock}
+      onDrop={handleDropOnBlock}
       onClick={(e) => {
         e.stopPropagation();
         onSelect();
       }}
-      className={`relative group p-2 rounded-lg transition-all cursor-pointer ${
-        isSelected
+      className={`relative group p-2 rounded-lg transition-all cursor-pointer select-none ${
+        isThisBlockDragging
+          ? 'opacity-40 border-2 border-dashed border-indigo-500 scale-[0.98]'
+          : isSelected
           ? 'ring-2 ring-indigo-500 bg-indigo-500/5'
           : 'hover:ring-1 hover:ring-indigo-400/50 hover:bg-zinc-50/50'
       }`}
     >
+      {/* Visual Hover Drag Grip */}
+      <div
+        className="absolute top-1 left-1 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded bg-zinc-800/80 text-zinc-400 hover:text-white cursor-grab active:cursor-grabbing z-20 pointer-events-none"
+        title="Drag block to reorder"
+      >
+        <GripVertical className="w-3.5 h-3.5" />
+      </div>
+
       {isSelected && (
         <BlockToolbar
           label={block.type}
@@ -296,6 +343,7 @@ export function BlockRenderer({
           onDuplicate={onDuplicate}
           onDelete={onDelete}
           onSelectParent={onSelectParent}
+          onDragStartHandle={handleDragStartBlock}
         />
       )}
       {renderContent()}

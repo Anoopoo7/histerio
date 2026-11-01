@@ -13,8 +13,6 @@ import {
   Redo2,
   Save,
   Send,
-  Variable,
-  Layout,
 } from 'lucide-react';
 
 export interface BuilderTopBarProps {

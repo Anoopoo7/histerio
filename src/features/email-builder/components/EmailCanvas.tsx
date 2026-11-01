@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
-import { BuilderColumn, BuilderDocument, BuilderSection, SelectedTarget } from '../model/types';
+import {
+  BuilderBlockType,
+  BuilderColumn,
+  BuilderDocument,
+  BuilderSection,
+  DropTarget,
+  SelectedTarget,
+} from '../model/types';
 import { CanvasSection } from './CanvasSection';
 import { Code2, Sparkles, Plus, Maximize2 } from 'lucide-react';
 import { useBuilderDnd } from '../context/BuilderDndContext';
@@ -21,6 +28,7 @@ export interface EmailCanvasProps {
   onDeleteRow?: (rowId: string) => void;
   onDuplicateRow?: (rowId: string) => void;
   onAddRow: (sectionId: string, layoutType: 'row-1' | 'row-2' | 'row-3') => void;
+  onAddBlockToContainer?: (target: DropTarget, blockType: BuilderBlockType) => void;
 }
 
 export function EmailCanvas({
@@ -40,6 +48,7 @@ export function EmailCanvas({
   onDeleteRow,
   onDuplicateRow,
   onAddRow,
+  onAddBlockToContainer,
 }: EmailCanvasProps) {
   const [renderMode, setRenderMode] = useState<'raw' | 'rendered'>('rendered');
   const { isDragging, activeDropTarget, handleDragOver, handleDrop } = useBuilderDnd();
@@ -184,6 +193,7 @@ export function EmailCanvas({
                   onDeleteRow={onDeleteRow}
                   onDuplicateRow={onDuplicateRow}
                   onAddRow={(layoutType) => onAddRow(section.id, layoutType)}
+                  onAddBlockToContainer={onAddBlockToContainer}
                 />
               </React.Fragment>
             ))}

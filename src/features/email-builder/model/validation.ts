@@ -72,6 +72,27 @@ export function validateBuilderBlock(block: BuilderBlock): string[] {
       if (textErr) errors.push(`Footer block [${block.id}]: ${textErr}`);
       break;
     }
+    case 'if-else': {
+      if (!block.props?.condition || !block.props.condition.trim()) {
+        errors.push(`If-Else block [${block.id}] requires a condition expression`);
+      }
+      for (const child of block.thenChildren || []) {
+        errors.push(...validateBuilderBlock(child));
+      }
+      for (const child of block.elseChildren || []) {
+        errors.push(...validateBuilderBlock(child));
+      }
+      break;
+    }
+    case 'loop': {
+      if (!block.props?.iterable || !block.props.iterable.trim()) {
+        errors.push(`Loop block [${block.id}] requires an iterable array expression`);
+      }
+      for (const child of block.children || []) {
+        errors.push(...validateBuilderBlock(child));
+      }
+      break;
+    }
   }
 
   return errors;

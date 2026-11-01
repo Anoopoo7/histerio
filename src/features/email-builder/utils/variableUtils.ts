@@ -56,7 +56,18 @@ export const DEFAULT_MOCK_DATA_JSON = JSON.stringify(
   {
     order: {
       id: '1234',
-      name: 'test user',
+      name: 'Jane Doe',
+      isVip: true,
+      items: [
+        { name: 'Wireless Headphones', quantity: 1, price: '$199.99' },
+        { name: 'Protective Travel Case', quantity: 1, price: '$29.99' },
+      ],
+      total: '$229.98',
+    },
+    customer: {
+      name: 'Jane Doe',
+      email: 'jane@example.com',
+      isVip: true,
     },
   },
   null,
@@ -192,5 +203,66 @@ export function replaceVariablesWithMockData(text: string, mockJson: string): st
     return result;
   } catch {
     return text;
+  }
+}
+
+export function evaluateCondition(condition: string | undefined | null, mockJson?: string): boolean {
+  if (!condition || !condition.trim()) return true;
+  if (!mockJson) return true;
+
+  try {
+    const data = JSON.parse(mockJson);
+    const cond = condition.trim().replace(/^\{\{\s*#?if\s*/, '').replace(/\s*\}\}$/, '').trim();
+
+    // Direct path lookup e.g. "order.isVip" or "user.isPremium"
+    if (/^[a-zA-Z0-9_.]+$/.test(cond)) {
+      const parts = cond.split('.');
+      let curr: unknown = data;
+      for (const p of parts) {
+        if (curr && typeof curr === 'object' && p in (curr as Record<string, unknown>)) {
+          curr = (curr as Record<string, unknown>)[p];
+        } else {
+          curr = undefined;
+          break;
+        }
+      }
+      return Boolean(curr);
+    }
+
+    // Try safe expression evaluation if variables are available
+    try {
+      const keys = Object.keys(data);
+      const values = Object.values(data);
+      const fn = new Function(...keys, `try { return Boolean(${cond}); } catch(e) { return false; }`);
+      return Boolean(fn(...values));
+    } catch {
+      return false;
+    }
+  } catch {
+    return true;
+  }
+}
+
+export function resolveIterable(iterablePath: string | undefined | null, mockJson?: string): unknown[] {
+  if (!iterablePath || !iterablePath.trim()) return [];
+  if (!mockJson) return [];
+
+  try {
+    const data = JSON.parse(mockJson);
+    const cleanPath = iterablePath.trim().replace(/^\{\{\s*#?(each)?\s*/, '').replace(/\s*\}\}$/, '').trim();
+    const parts = cleanPath.split('.');
+    let curr: unknown = data;
+    for (const p of parts) {
+      if (curr && typeof curr === 'object' && p in (curr as Record<string, unknown>)) {
+        curr = (curr as Record<string, unknown>)[p];
+      } else {
+        curr = undefined;
+        break;
+      }
+    }
+    if (Array.isArray(curr)) return curr;
+    return [];
+  } catch {
+    return [];
   }
 }

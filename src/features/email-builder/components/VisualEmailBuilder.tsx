@@ -15,7 +15,6 @@ import {
 } from '../model/defaults';
 import { deserializeBuilder, serializeBuilder } from '../model/serialization';
 import {
-  BuilderBlock,
   BuilderBlockType,
   BuilderColumn,
   BuilderDocument,
@@ -33,6 +32,15 @@ import { validateBuilderDocument } from '../model/validation';
 import { generateEmailHtml } from '../renderer/renderEmail';
 import { validateVariableSyntax } from '../utils/variableUtils';
 import { useUndoRedo } from '../history/useUndoRedo';
+import {
+  deleteBlockRecursive,
+  duplicateBlockRecursive,
+  insertBlockIntoDoc,
+  insertBlockNextTo,
+  moveBlockRecursive,
+  removeBlockFromDoc,
+  updateBlockPropsRecursive,
+} from '../utils/treeOperations';
 import { BuilderDndProvider } from '../context/BuilderDndContext';
 import { BuilderTopBar } from './BuilderTopBar';
 import { ComponentPalette, PresetSnippetType } from './ComponentPalette';
@@ -141,8 +149,6 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
   const [isHtmlOpen, setIsHtmlOpen] = useState(false);
   const [isTestEmailOpen, setIsTestEmailOpen] = useState(false);
 
-  const [mockDataJson, setMockDataJson] = useState(DEFAULT_MOCK_DATA_JSON);
-
   // Mark dirty when doc or subject changes
   const handleDocChange = useCallback(
     (updater: (prev: BuilderDocument) => BuilderDocument) => {
@@ -177,28 +183,13 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
         if (item.kind === 'new-block') {
           const newBlock = createBlock(item.blockType);
 
-          if (target.type === 'column') {
-            const nextDoc: BuilderDocument = {
-              ...prev,
-              children: prev.children.map((s) => ({
-                ...s,
-                children: s.children.map((r) => ({
-                  ...r,
-                  columns: r.columns.map((c) => {
-                    if (c.id !== target.columnId) return c;
-                    const newChildren = [...c.children];
-                    const insertIdx = Math.max(0, Math.min(target.index, newChildren.length));
-                    newChildren.splice(insertIdx, 0, newBlock);
-                    return { ...c, children: newChildren };
-                  }),
-                })),
-              })),
-            };
+          if (target.type === 'column' || target.type === 'if-branch' || target.type === 'loop') {
+            const nextDoc = insertBlockIntoDoc(prev, target, newBlock);
             setTimeout(() => {
               setSelectedTarget({
                 type: 'block',
                 id: newBlock.id,
-                columnId: target.columnId,
+                columnId: target.type === 'column' ? target.columnId : '',
                 rowId: '',
                 sectionId: '',
               });
@@ -229,65 +220,46 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
           }
         }
 
-        // 2. MOVING an existing block across or within columns
+        // 2. MOVING an existing block across or within containers
         if (item.kind === 'move-block') {
-          if (target.type !== 'column') return prev;
-
-          let movedBlock: BuilderBlock | null = null;
-
-          // Remove block from source column
-          const docWithoutBlock: BuilderDocument = {
-            ...prev,
-            children: prev.children.map((s) => ({
-              ...s,
-              children: s.children.map((r) => ({
-                ...r,
-                columns: r.columns.map((c) => {
-                  if (c.id !== item.sourceColumnId) return c;
-                  const idx = c.children.findIndex((b) => b.id === item.blockId);
-                  if (idx !== -1) {
-                    movedBlock = c.children[idx];
-                    return {
-                      ...c,
-                      children: c.children.filter((b) => b.id !== item.blockId),
-                    };
-                  }
-                  return c;
-                }),
-              })),
-            })),
-          };
-
+          const { doc: docWithoutBlock, removed: movedBlock } = removeBlockFromDoc(prev, item.blockId);
           if (!movedBlock) return prev;
 
-          // Insert into target column
-          const docWithBlock: BuilderDocument = {
-            ...docWithoutBlock,
-            children: docWithoutBlock.children.map((s) => ({
-              ...s,
-              children: s.children.map((r) => ({
-                ...r,
-                columns: r.columns.map((c) => {
-                  if (c.id !== target.columnId) return c;
-                  const newChildren = [...c.children];
-                  const insertIdx = Math.max(0, Math.min(target.index, newChildren.length));
-                  newChildren.splice(insertIdx, 0, movedBlock!);
-                  return { ...c, children: newChildren };
-                }),
-              })),
-            })),
-          };
+          if (target.type === 'column' || target.type === 'if-branch' || target.type === 'loop') {
+            const docWithBlock = insertBlockIntoDoc(docWithoutBlock, target, movedBlock);
+            setTimeout(() => {
+              setSelectedTarget({
+                type: 'block',
+                id: item.blockId,
+                columnId: target.type === 'column' ? target.columnId : '',
+                rowId: '',
+                sectionId: '',
+              });
+            }, 0);
+            return docWithBlock;
+          }
 
-          setTimeout(() => {
-            setSelectedTarget({
-              type: 'block',
-              id: item.blockId,
-              columnId: target.columnId,
-              rowId: '',
-              sectionId: '',
-            });
-          }, 0);
-          return docWithBlock;
+          if (target.type === 'section') {
+            const newRow = createOneColumnRow([movedBlock]);
+            return {
+              ...docWithoutBlock,
+              children: docWithoutBlock.children.map((s) => {
+                if (s.id !== target.sectionId) return s;
+                const newRows = [...s.children];
+                const insertIdx = Math.max(0, Math.min(target.index, newRows.length));
+                newRows.splice(insertIdx, 0, newRow);
+                return { ...s, children: newRows };
+              }),
+            };
+          }
+
+          if (target.type === 'document') {
+            const newSection = createSection([createOneColumnRow([movedBlock])]);
+            const newSections = [...docWithoutBlock.children];
+            const insertIdx = Math.max(0, Math.min(target.index, newSections.length));
+            newSections.splice(insertIdx, 0, newSection);
+            return { ...docWithoutBlock, children: newSections };
+          }
         }
 
         // 3. Dropping a NEW LAYOUT
@@ -391,29 +363,21 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
         };
       }
 
-      // If user has a block selected, place immediately after it in the same column
+      // If user has a block selected, place immediately inside (if container) or next to it (recursive)
       if (selectedTarget?.type === 'block') {
-        let placed = false;
-        const updatedDoc = {
-          ...prev,
-          children: prev.children.map((s) => ({
-            ...s,
-            children: s.children.map((r) => ({
-              ...r,
-              columns: r.columns.map((c) => {
-                const bIdx = c.children.findIndex((b) => b.id === selectedTarget.id);
-                if (bIdx !== -1) {
-                  placed = true;
-                  const newChildren = [...c.children];
-                  newChildren.splice(bIdx + 1, 0, newBlock);
-                  return { ...c, children: newChildren };
-                }
-                return c;
-              }),
-            })),
-          })),
-        };
-        if (placed) return updatedDoc;
+        const res = insertBlockNextTo(prev, selectedTarget.id, newBlock);
+        if (res.inserted) {
+          setTimeout(() => {
+            setSelectedTarget({
+              type: 'block',
+              id: newBlock.id,
+              columnId: '',
+              rowId: '',
+              sectionId: '',
+            });
+          }, 0);
+          return res.doc;
+        }
       }
 
       // If user has a column selected, append to that column
@@ -435,7 +399,18 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
             })),
           })),
         };
-        if (placed) return updatedDoc;
+        if (placed) {
+          setTimeout(() => {
+            setSelectedTarget({
+              type: 'block',
+              id: newBlock.id,
+              columnId: selectedTarget.id,
+              rowId: '',
+              sectionId: '',
+            });
+          }, 0);
+          return updatedDoc;
+        }
       }
 
       // Fallback: place into last column of last row
@@ -478,6 +453,13 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
 
     setSelectedTarget({ type: 'block', id: newBlock.id, columnId: '', rowId: '', sectionId: '' });
   };
+
+  // Add Block directly into a target container (e.g. if-branch or loop)
+  const handleAddBlockToContainer = useCallback((target: DropTarget, blockType: BuilderBlockType) => {
+    const newBlock = createBlock(blockType);
+    handleDocChange((prev) => insertBlockIntoDoc(prev, target, newBlock));
+    setSelectedTarget({ type: 'block', id: newBlock.id, columnId: '', rowId: '', sectionId: '' });
+  }, [handleDocChange]);
 
   // Insert Dynamic Preset Snippet (click)
   const handleAddPresetSnippet = (snippetType: PresetSnippetType) => {
@@ -542,7 +524,7 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
     }));
   };
 
-  // Block Props updates
+  // Block Props updates (recursive across columns, if-else, and loop containers)
   const handleUpdateBlockProps = (blockId: string, props: Record<string, unknown>) => {
     handleDocChange((prev) => ({
       ...prev,
@@ -552,14 +534,14 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
           ...r,
           columns: r.columns.map((c) => ({
             ...c,
-            children: c.children.map((b) => (b.id === blockId ? ({ ...b, props: { ...b.props, ...props } } as BuilderBlock) : b)),
+            children: updateBlockPropsRecursive(c.children, blockId, props),
           })),
         })),
       })),
     }));
   };
 
-  // Move block up/down within column
+  // Move block up/down (recursive across columns, if-else, and loop containers)
   const handleMoveBlock = (blockId: string, direction: 'up' | 'down') => {
     handleDocChange((prev) => ({
       ...prev,
@@ -567,23 +549,16 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
         ...s,
         children: s.children.map((r) => ({
           ...r,
-          columns: r.columns.map((c) => {
-            const idx = c.children.findIndex((b) => b.id === blockId);
-            if (idx === -1) return c;
-            const targetIdx = direction === 'up' ? idx - 1 : idx + 1;
-            if (targetIdx < 0 || targetIdx >= c.children.length) return c;
-
-            const updatedBlocks = [...c.children];
-            const [moved] = updatedBlocks.splice(idx, 1);
-            updatedBlocks.splice(targetIdx, 0, moved);
-            return { ...c, children: updatedBlocks };
-          }),
+          columns: r.columns.map((c) => ({
+            ...c,
+            children: moveBlockRecursive(c.children, blockId, direction),
+          })),
         })),
       })),
     }));
   };
 
-  // Duplicate Block
+  // Duplicate Block (recursive across columns, if-else, and loop containers)
   const handleDuplicateBlock = (blockId: string) => {
     handleDocChange((prev) => ({
       ...prev,
@@ -591,24 +566,16 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
         ...s,
         children: s.children.map((r) => ({
           ...r,
-          columns: r.columns.map((c) => {
-            const idx = c.children.findIndex((b) => b.id === blockId);
-            if (idx === -1) return c;
-            const original = c.children[idx];
-            const clone: BuilderBlock = {
-              ...JSON.parse(JSON.stringify(original)),
-              id: generateId(`block-${original.type}`),
-            };
-            const updated = [...c.children];
-            updated.splice(idx + 1, 0, clone);
-            return { ...c, children: updated };
-          }),
+          columns: r.columns.map((c) => ({
+            ...c,
+            children: duplicateBlockRecursive(c.children, blockId),
+          })),
         })),
       })),
     }));
   };
 
-  // Delete Block
+  // Delete Block (recursive across columns, if-else, and loop containers)
   const handleDeleteBlock = (blockId: string) => {
     handleDocChange((prev) => ({
       ...prev,
@@ -618,7 +585,7 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
           ...r,
           columns: r.columns.map((c) => ({
             ...c,
-            children: c.children.filter((b) => b.id !== blockId),
+            children: deleteBlockRecursive(c.children, blockId),
           })),
         })),
       })),
@@ -839,6 +806,7 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
             onDeleteRow={handleDeleteRow}
             onDuplicateRow={handleDuplicateRow}
             onAddRow={handleAddRowToSection}
+            onAddBlockToContainer={handleAddBlockToContainer}
           />
 
           {/* Right: Properties Inspector Panel */}
@@ -880,7 +848,7 @@ export function VisualEmailBuilder({ template, initialVersionDetail, onSaved }: 
           isOpen={isTestEmailOpen}
           onClose={() => setIsTestEmailOpen(false)}
           template={template}
-          sampleDataJson={mockDataJson}
+          sampleDataJson={sampleJson}
         />
       </div>
     </BuilderDndProvider>

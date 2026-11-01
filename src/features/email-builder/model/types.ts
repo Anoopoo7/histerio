@@ -134,6 +134,17 @@ export interface FooterProps {
   spacing?: number;
 }
 
+export interface IfElseProps {
+  condition: string;
+  showElse?: boolean;
+  activeBranchView?: 'then' | 'else';
+}
+
+export interface LoopProps {
+  iterable: string;
+  itemName?: string;
+}
+
 export interface TextBlock {
   id: string;
   type: 'text';
@@ -188,6 +199,21 @@ export interface FooterBlock {
   props: FooterProps;
 }
 
+export interface IfElseBlock {
+  id: string;
+  type: 'if-else';
+  props: IfElseProps;
+  thenChildren: BuilderBlock[];
+  elseChildren: BuilderBlock[];
+}
+
+export interface LoopBlock {
+  id: string;
+  type: 'loop';
+  props: LoopProps;
+  children: BuilderBlock[];
+}
+
 export type BuilderBlock =
   | TextBlock
   | HeadingBlock
@@ -197,7 +223,9 @@ export type BuilderBlock =
   | SpacerBlock
   | SocialBlock
   | LogoBlock
-  | FooterBlock;
+  | FooterBlock
+  | IfElseBlock
+  | LoopBlock;
 
 export type BuilderBlockType = BuilderBlock['type'];
 
@@ -237,12 +265,14 @@ export type DragItem =
   | { kind: 'new-block'; blockType: BuilderBlockType }
   | { kind: 'new-layout'; layoutType: LayoutType }
   | { kind: 'new-preset'; snippetType: PresetSnippetType }
-  | { kind: 'move-block'; blockId: string; sourceColumnId: string }
+  | { kind: 'move-block'; blockId: string; sourceColumnId?: string }
   | { kind: 'move-row'; rowId: string; sourceSectionId: string }
   | { kind: 'move-section'; sectionId: string };
 
 export type DropTarget =
   | { type: 'column'; columnId: string; index: number }
+  | { type: 'if-branch'; blockId: string; branch: 'then' | 'else'; index: number }
+  | { type: 'loop'; blockId: string; index: number }
   | { type: 'section'; sectionId: string; index: number }
   | { type: 'document'; index: number };
 

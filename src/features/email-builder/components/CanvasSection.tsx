@@ -1,7 +1,13 @@
 'use client';
 
 import React from 'react';
-import { BuilderColumn, BuilderRow, BuilderSection } from '../model/types';
+import {
+  BuilderBlockType,
+  BuilderColumn,
+  BuilderRow,
+  BuilderSection,
+  DropTarget,
+} from '../model/types';
 import { BlockToolbar } from './BlockToolbar';
 import { CanvasRow } from './CanvasRow';
 import { Button } from '@/components/ui';
@@ -32,6 +38,7 @@ export interface CanvasSectionProps {
   onDeleteRow?: (rowId: string) => void;
   onDuplicateRow?: (rowId: string) => void;
   onAddRow?: (layoutType: 'row-1' | 'row-2' | 'row-3') => void;
+  onAddBlockToContainer?: (target: DropTarget, blockType: BuilderBlockType) => void;
 }
 
 export function CanvasSection({
@@ -58,6 +65,7 @@ export function CanvasSection({
   onDeleteRow,
   onDuplicateRow,
   onAddRow,
+  onAddBlockToContainer,
 }: CanvasSectionProps) {
   const { startDrag, activeDragItem, activeDropTarget, handleDragOver, handleDrop } =
     useBuilderDnd();
@@ -171,6 +179,7 @@ export function CanvasSection({
                 onDeleteRow={onDeleteRow ? () => onDeleteRow(row.id) : undefined}
                 onDuplicateRow={onDuplicateRow ? () => onDuplicateRow(row.id) : undefined}
                 onSelectParentSection={onSelectSection}
+                onAddBlockToContainer={onAddBlockToContainer}
               />
             </React.Fragment>
           ))}

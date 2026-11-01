@@ -18,6 +18,8 @@ import {
   FileText,
   GripVertical,
   Sparkles,
+  GitFork,
+  Repeat,
 } from 'lucide-react';
 
 export type { PresetSnippetType };
@@ -52,6 +54,10 @@ export function ComponentPalette({ onAddLayout, onAddBlock, onAddPresetSnippet }
         return <Bookmark className="w-4 h-4 text-cyan-400" />;
       case 'footer':
         return <FileText className="w-4 h-4 text-teal-400" />;
+      case 'if-else':
+        return <GitFork className="w-4 h-4 text-violet-400" />;
+      case 'loop':
+        return <Repeat className="w-4 h-4 text-emerald-400" />;
     }
   };
 
@@ -59,6 +65,10 @@ export function ComponentPalette({ onAddLayout, onAddBlock, onAddPresetSnippet }
     if (type === 'section') return <Square className="w-4 h-4 text-indigo-400" />;
     return <Columns className="w-4 h-4 text-purple-400" />;
   };
+
+  const contentBlockTypes = (Object.keys(BLOCK_REGISTRY) as BuilderBlockType[]).filter(
+    (k) => BLOCK_REGISTRY[k].category === 'content'
+  );
 
   return (
     <div className="w-64 bg-zinc-900 border-r border-zinc-800 flex flex-col h-full overflow-y-auto select-none">
@@ -72,6 +82,72 @@ export function ComponentPalette({ onAddLayout, onAddBlock, onAddPresetSnippet }
         <p className="text-[11px] text-zinc-400 mt-1">Drag anywhere on canvas or click to add</p>
       </div>
 
+      {/* Dynamic Logic & Loops Category */}
+      <div className="p-4 border-b border-zinc-800 space-y-3 bg-violet-950/10">
+        <span className="text-[11px] font-semibold text-violet-300 uppercase tracking-wider block flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5 text-violet-400" />
+            <span>Dynamic Logic</span>
+          </span>
+          <span className="text-[9px] px-1.5 py-0.5 bg-violet-500/20 text-violet-300 rounded font-mono">
+            Nestable
+          </span>
+        </span>
+        <div className="grid grid-cols-1 gap-2">
+          {/* If/Else Block Card */}
+          <div
+            draggable
+            onDragStart={(e) => startDrag({ kind: 'new-block', blockType: 'if-else' }, e)}
+            onDragEnd={endDrag}
+            onClick={() => onAddBlock('if-else')}
+            className={`flex items-center justify-between p-2.5 bg-zinc-950/70 border rounded-xl transition-all cursor-grab active:cursor-grabbing group select-none ${
+              activeDragItem?.kind === 'new-block' && activeDragItem.blockType === 'if-else'
+                ? 'border-violet-500 bg-violet-500/20 opacity-60'
+                : 'border-violet-800/40 hover:border-violet-500/80 hover:bg-violet-500/10 hover:translate-x-0.5'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-violet-500/10 border border-violet-500/30 group-hover:border-violet-400">
+                <GitFork className="w-4 h-4 text-violet-400" />
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-zinc-100 block group-hover:text-violet-200">
+                  If / Else Condition
+                </span>
+                <span className="text-[10px] text-zinc-400 block font-mono">{"{{#if condition}}"}</span>
+              </div>
+            </div>
+            <GripVertical className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 shrink-0" />
+          </div>
+
+          {/* Loop Block Card */}
+          <div
+            draggable
+            onDragStart={(e) => startDrag({ kind: 'new-block', blockType: 'loop' }, e)}
+            onDragEnd={endDrag}
+            onClick={() => onAddBlock('loop')}
+            className={`flex items-center justify-between p-2.5 bg-zinc-950/70 border rounded-xl transition-all cursor-grab active:cursor-grabbing group select-none ${
+              activeDragItem?.kind === 'new-block' && activeDragItem.blockType === 'loop'
+                ? 'border-emerald-500 bg-emerald-500/20 opacity-60'
+                : 'border-emerald-800/40 hover:border-emerald-500/80 hover:bg-emerald-500/10 hover:translate-x-0.5'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="p-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 group-hover:border-emerald-400">
+                <Repeat className="w-4 h-4 text-emerald-400" />
+              </div>
+              <div>
+                <span className="text-xs font-semibold text-zinc-100 block group-hover:text-emerald-200">
+                  Loop Component
+                </span>
+                <span className="text-[10px] text-zinc-400 block font-mono">{"{{#each items}}"}</span>
+              </div>
+            </div>
+            <GripVertical className="w-4 h-4 text-zinc-600 group-hover:text-zinc-400 shrink-0" />
+          </div>
+        </div>
+      </div>
+
       {/* Content Blocks Category */}
       <div className="p-4 border-b border-zinc-800 space-y-3">
         <span className="text-[11px] font-semibold text-zinc-400 uppercase tracking-wider block flex items-center justify-between">
@@ -79,7 +155,7 @@ export function ComponentPalette({ onAddLayout, onAddBlock, onAddPresetSnippet }
           <span className="text-[10px] text-zinc-500">Drag to insert</span>
         </span>
         <div className="grid grid-cols-2 gap-2">
-          {(Object.keys(BLOCK_REGISTRY) as BuilderBlockType[]).map((type) => {
+          {contentBlockTypes.map((type) => {
             const entry = BLOCK_REGISTRY[type];
             const isBeingDragged =
               activeDragItem?.kind === 'new-block' && activeDragItem.blockType === type;

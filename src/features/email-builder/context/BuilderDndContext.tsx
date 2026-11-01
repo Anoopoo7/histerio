@@ -60,7 +60,11 @@ export function BuilderDndProvider({ children, onDropItem }: BuilderDndProviderP
         prev.type === target.type &&
         prev.index === target.index &&
         (prev.type === 'column' && target.type === 'column' ? prev.columnId === target.columnId : true) &&
-        (prev.type === 'section' && target.type === 'section' ? prev.sectionId === target.sectionId : true)
+        (prev.type === 'section' && target.type === 'section' ? prev.sectionId === target.sectionId : true) &&
+        (prev.type === 'if-branch' && target.type === 'if-branch'
+          ? prev.blockId === target.blockId && prev.branch === target.branch
+          : true) &&
+        (prev.type === 'loop' && target.type === 'loop' ? prev.blockId === target.blockId : true)
       ) {
         return prev;
       }
@@ -77,6 +81,17 @@ export function BuilderDndProvider({ children, onDropItem }: BuilderDndProviderP
           return null;
         }
         if (prev.type === 'section' && target.type === 'section' && prev.sectionId === target.sectionId) {
+          return null;
+        }
+        if (
+          prev.type === 'if-branch' &&
+          target.type === 'if-branch' &&
+          prev.blockId === target.blockId &&
+          prev.branch === target.branch
+        ) {
+          return null;
+        }
+        if (prev.type === 'loop' && target.type === 'loop' && prev.blockId === target.blockId) {
           return null;
         }
         if (prev.type === 'document') {

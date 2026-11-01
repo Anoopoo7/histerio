@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { BuilderBlock, BuilderColumn } from '../model/types';
+import { BuilderBlock, BuilderBlockType, BuilderColumn, DropTarget } from '../model/types';
 import { BlockRenderer } from './BlockRenderer';
 import { useBuilderDnd } from '../context/BuilderDndContext';
 import { Plus } from 'lucide-react';
@@ -20,6 +20,7 @@ export interface CanvasColumnProps {
   onDuplicateBlock: (blockId: string) => void;
   onDeleteBlock: (blockId: string) => void;
   onDropBlockInColumn?: (blockType: string, insertIndex: number) => void;
+  onAddBlockToContainer?: (target: DropTarget, blockType: BuilderBlockType) => void;
 }
 
 export function CanvasColumn({
@@ -35,6 +36,7 @@ export function CanvasColumn({
   onMoveBlock,
   onDuplicateBlock,
   onDeleteBlock,
+  onAddBlockToContainer,
 }: CanvasColumnProps) {
   const { activeDropTarget, isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useBuilderDnd();
@@ -113,15 +115,22 @@ export function CanvasColumn({
                 index={idx}
                 columnWidthPx={columnWidthPx * (column.width / 100)}
                 isSelected={selectedBlockId === block.id}
+                selectedBlockId={selectedBlockId}
                 testDataJson={testDataJson}
                 renderMode={renderMode}
                 onSelect={() => onSelectBlock(block.id)}
+                onSelectBlockById={onSelectBlock}
                 onUpdateProps={(props) => onUpdateBlockProps(block.id, props)}
+                onUpdateBlockPropsById={onUpdateBlockProps}
                 onMoveUp={idx > 0 ? () => onMoveBlock(block.id, 'up') : undefined}
                 onMoveDown={idx < column.children.length - 1 ? () => onMoveBlock(block.id, 'down') : undefined}
                 onDuplicate={() => onDuplicateBlock(block.id)}
                 onDelete={() => onDeleteBlock(block.id)}
+                onMoveBlockById={onMoveBlock}
+                onDuplicateBlockById={onDuplicateBlock}
+                onDeleteBlockById={onDeleteBlock}
                 onSelectParent={onSelectColumn}
+                onAddBlockToContainer={onAddBlockToContainer}
               />
             </React.Fragment>
           ))}

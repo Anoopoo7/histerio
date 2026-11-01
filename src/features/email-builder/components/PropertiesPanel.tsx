@@ -16,6 +16,7 @@ import {
 } from '../model/types';
 import { VariablePickerPopover } from './VariablePickerPopover';
 import { Button, Input, Select, Badge } from '@/components/ui';
+import { findBlockRecursive } from '../utils/treeOperations';
 import {
   AlignLeft,
   AlignCenter,
@@ -31,6 +32,8 @@ import {
   CheckCircle2,
   AlertCircle,
   RotateCcw,
+  GitFork,
+  Repeat,
 } from 'lucide-react';
 
 export interface PropertiesPanelProps {
@@ -150,7 +153,7 @@ export function PropertiesPanel({
       for (const s of doc.children) {
         for (const r of s.children) {
           for (const c of r.columns) {
-            const found = c.children.find((b) => b.id === selectedTarget.id);
+            const found = findBlockRecursive(c.children, selectedTarget.id);
             if (found) {
               selectedSection = s;
               selectedRow = r;
@@ -175,6 +178,12 @@ export function PropertiesPanel({
       } else if (selectedBlock.type === 'button') {
         const current = selectedBlock.props.text || '';
         onUpdateBlockProps(selectedBlock.id, { text: `${current} ${varTag}` });
+      } else if (selectedBlock.type === 'if-else') {
+        const cleanVar = varTag.replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, '');
+        onUpdateBlockProps(selectedBlock.id, { condition: cleanVar });
+      } else if (selectedBlock.type === 'loop') {
+        const cleanVar = varTag.replace(/^\{\{\s*/, '').replace(/\s*\}\}$/, '');
+        onUpdateBlockProps(selectedBlock.id, { iterable: cleanVar });
       }
     }
     setShowVarPicker(false);
@@ -677,28 +686,118 @@ export function PropertiesPanel({
               </div>
             )}
 
-            {/* Alignment Control for all blocks */}
-            <div>
-              <label className="block text-xs font-medium text-zinc-300 mb-1">Alignment</label>
-              <div className="flex items-center gap-1 p-1 bg-zinc-950 border border-zinc-800 rounded-lg">
-                {(['left', 'center', 'right'] as const).map((align) => (
-                  <button
-                    key={align}
-                    type="button"
-                    onClick={() => onUpdateBlockProps(selectedBlock!.id, { align })}
-                    className={`flex-1 py-1.5 rounded flex items-center justify-center transition-colors ${
-                      (selectedBlock?.props as { align?: string })?.align === align
-                        ? 'bg-indigo-500/20 text-indigo-300'
-                        : 'text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    {align === 'left' && <AlignLeft className="w-3.5 h-3.5" />}
-                    {align === 'center' && <AlignCenter className="w-3.5 h-3.5" />}
-                    {align === 'right' && <AlignRight className="w-3.5 h-3.5" />}
-                  </button>
-                ))}
+            {/* If-Else Condition Properties */}
+            {selectedBlock.type === 'if-else' && (
+              <div className="space-y-4">
+                <div className="p-3 bg-violet-950/20 border border-violet-800/40 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-violet-300 flex items-center gap-1.5">
+                      <GitFork className="w-3.5 h-3.5 text-violet-400" />
+                      Condition Expression
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowVarPicker(true)}
+                      className="text-[11px] text-violet-400 hover:text-violet-300 flex items-center gap-1 bg-violet-500/10 px-2 py-0.5 rounded border border-violet-500/20"
+                    >
+                      <Variable className="w-3 h-3" />
+                      Pick Var
+                    </button>
+                  </div>
+                  <Input
+                    value={selectedBlock.props.condition || ''}
+                    onChange={(e) => onUpdateBlockProps(selectedBlock!.id, { condition: e.target.value })}
+                    placeholder="e.g. order.isVip or customer.isPremium"
+                    className="font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-zinc-400">
+                    Evaluates if the expression is truthy. Handlebars: <code className="text-violet-300 font-mono">{"{{#if condition}}"}</code>
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-zinc-950 border border-zinc-800 rounded-xl">
+                  <div>
+                    <span className="text-xs font-medium text-zinc-200 block">Enable Else Branch</span>
+                    <span className="text-[10px] text-zinc-400 block">Render alternative components when false</span>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={selectedBlock.props.showElse !== false}
+                    onChange={(e) => onUpdateBlockProps(selectedBlock!.id, { showElse: e.target.checked })}
+                    className="w-4 h-4 rounded text-violet-600 focus:ring-violet-500 bg-zinc-900 border-zinc-700"
+                  />
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Loop Properties */}
+            {selectedBlock.type === 'loop' && (
+              <div className="space-y-4">
+                <div className="p-3 bg-emerald-950/20 border border-emerald-800/40 rounded-xl space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-semibold text-emerald-300 flex items-center gap-1.5">
+                      <Repeat className="w-3.5 h-3.5 text-emerald-400" />
+                      Iterable Array Path
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowVarPicker(true)}
+                      className="text-[11px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20"
+                    >
+                      <Variable className="w-3 h-3" />
+                      Pick Var
+                    </button>
+                  </div>
+                  <Input
+                    value={selectedBlock.props.iterable || ''}
+                    onChange={(e) => onUpdateBlockProps(selectedBlock!.id, { iterable: e.target.value })}
+                    placeholder="e.g. order.items"
+                    className="font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-zinc-400">
+                    Handlebars: <code className="text-emerald-300 font-mono">{"{{#each iterable}}"}</code>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-zinc-300 mb-1">Item Alias (optional)</label>
+                  <Input
+                    value={selectedBlock.props.itemName || 'item'}
+                    onChange={(e) => onUpdateBlockProps(selectedBlock!.id, { itemName: e.target.value })}
+                    placeholder="item"
+                    className="font-mono text-xs"
+                  />
+                  <p className="text-[10px] text-zinc-400 mt-1">
+                    Reference item properties in nested components using <code className="text-zinc-300 font-mono">{"{{item.name}}"}</code>
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Alignment Control for standard content blocks */}
+            {selectedBlock.type !== 'if-else' && selectedBlock.type !== 'loop' && (
+              <div>
+                <label className="block text-xs font-medium text-zinc-300 mb-1">Alignment</label>
+                <div className="flex items-center gap-1 p-1 bg-zinc-950 border border-zinc-800 rounded-lg">
+                  {(['left', 'center', 'right'] as const).map((align) => (
+                    <button
+                      key={align}
+                      type="button"
+                      onClick={() => onUpdateBlockProps(selectedBlock!.id, { align })}
+                      className={`flex-1 py-1.5 rounded flex items-center justify-center transition-colors ${
+                        (selectedBlock?.props as { align?: string })?.align === align
+                          ? 'bg-indigo-500/20 text-indigo-300'
+                          : 'text-zinc-400 hover:text-zinc-200'
+                      }`}
+                    >
+                      {align === 'left' && <AlignLeft className="w-3.5 h-3.5" />}
+                      {align === 'center' && <AlignCenter className="w-3.5 h-3.5" />}
+                      {align === 'right' && <AlignRight className="w-3.5 h-3.5" />}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {onDeleteBlock && (
               <div className="pt-4 border-t border-zinc-800">

@@ -13,10 +13,14 @@ import {
   FooterProps,
   HeadingBlock,
   HeadingProps,
+  IfElseBlock,
+  IfElseProps,
   ImageBlock,
   ImageProps,
   LogoBlock,
   LogoProps,
+  LoopBlock,
+  LoopProps,
   SocialBlock,
   SocialProps,
   SpacerBlock,
@@ -104,6 +108,31 @@ export function createFooterBlock(override?: Partial<FooterProps>): FooterBlock 
   };
 }
 
+export function createIfElseBlock(override?: Partial<IfElseProps>): IfElseBlock {
+  return {
+    id: generateId('block-if-else'),
+    type: 'if-else',
+    props: { ...BLOCK_REGISTRY['if-else'].defaultProps, ...override },
+    thenChildren: [
+      createTextBlock({ content: '🎉 Exclusive VIP Offer: Enjoy 20% off your entire order with code VIP20!' }),
+    ],
+    elseChildren: [
+      createTextBlock({ content: 'Thank you for your order! View your standard account perks.' }),
+    ],
+  };
+}
+
+export function createLoopBlock(override?: Partial<LoopProps>): LoopBlock {
+  return {
+    id: generateId('block-loop'),
+    type: 'loop',
+    props: { ...BLOCK_REGISTRY.loop.defaultProps, ...override },
+    children: [
+      createTextBlock({ content: '• {{item.name}} — Qty: {{item.quantity}} × {{item.price}}' }),
+    ],
+  };
+}
+
 export function createBlock(type: BuilderBlockType): BuilderBlock {
   switch (type) {
     case 'text':
@@ -124,6 +153,10 @@ export function createBlock(type: BuilderBlockType): BuilderBlock {
       return createLogoBlock();
     case 'footer':
       return createFooterBlock();
+    case 'if-else':
+      return createIfElseBlock();
+    case 'loop':
+      return createLoopBlock();
   }
 }
 

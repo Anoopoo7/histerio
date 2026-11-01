@@ -4,8 +4,10 @@ import {
   DividerProps,
   FooterProps,
   HeadingProps,
+  IfElseProps,
   ImageProps,
   LogoProps,
+  LoopProps,
   SocialProps,
   SpacerProps,
   TextProps,
@@ -14,9 +16,9 @@ import {
 export interface BlockRegistryEntry<P> {
   type: BuilderBlockType;
   label: string;
-  category: 'content';
+  category: 'content' | 'logic';
   defaultProps: P;
-  allowedParents: ReadonlyArray<'column'>;
+  allowedParents: ReadonlyArray<'column' | 'if-branch' | 'loop'>;
 }
 
 export const BLOCK_REGISTRY: {
@@ -29,12 +31,14 @@ export const BLOCK_REGISTRY: {
   social: BlockRegistryEntry<SocialProps>;
   logo: BlockRegistryEntry<LogoProps>;
   footer: BlockRegistryEntry<FooterProps>;
+  'if-else': BlockRegistryEntry<IfElseProps>;
+  loop: BlockRegistryEntry<LoopProps>;
 } = {
   text: {
     type: 'text',
     label: 'Text',
     category: 'content',
-    allowedParents: ['column'],
+    allowedParents: ['column', 'if-branch', 'loop'],
     defaultProps: {
       content: 'Write your email body copy here. You can insert Handlebars variables like {{customer.name}}.',
       fontSize: 15,
@@ -49,7 +53,7 @@ export const BLOCK_REGISTRY: {
     type: 'heading',
     label: 'Heading',
     category: 'content',
-    allowedParents: ['column'],
+    allowedParents: ['column', 'if-branch', 'loop'],
     defaultProps: {
       text: 'Headline Title',
       level: 'h2',
@@ -65,7 +69,7 @@ export const BLOCK_REGISTRY: {
     type: 'image',
     label: 'Image',
     category: 'content',
-    allowedParents: ['column'],
+    allowedParents: ['column', 'if-branch', 'loop'],
     defaultProps: {
       src: 'https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=600&auto=format&fit=crop&q=80',
       alt: 'Email Banner Image',
@@ -80,7 +84,7 @@ export const BLOCK_REGISTRY: {
     type: 'button',
     label: 'Button',
     category: 'content',
-    allowedParents: ['column'],
+    allowedParents: ['column', 'if-branch', 'loop'],
     defaultProps: {
       text: 'Click Here',
       url: 'https://example.com',
@@ -98,7 +102,7 @@ export const BLOCK_REGISTRY: {
     type: 'divider',
     label: 'Divider',
     category: 'content',
-    allowedParents: ['column'],
+    allowedParents: ['column', 'if-branch', 'loop'],
     defaultProps: {
       color: '#e5e7eb',
       thickness: 1,
@@ -111,7 +115,7 @@ export const BLOCK_REGISTRY: {
     type: 'spacer',
     label: 'Spacer',
     category: 'content',
-    allowedParents: ['column'],
+    allowedParents: ['column', 'if-branch', 'loop'],
     defaultProps: {
       height: 24,
     },
@@ -120,7 +124,7 @@ export const BLOCK_REGISTRY: {
     type: 'social',
     label: 'Social Icons',
     category: 'content',
-    allowedParents: ['column'],
+    allowedParents: ['column', 'if-branch', 'loop'],
     defaultProps: {
       items: [
         { platform: 'x', url: 'https://x.com', label: 'X' },
@@ -138,7 +142,7 @@ export const BLOCK_REGISTRY: {
     type: 'logo',
     label: 'Logo',
     category: 'content',
-    allowedParents: ['column'],
+    allowedParents: ['column', 'if-branch', 'loop'],
     defaultProps: {
       src: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=200&auto=format&fit=crop&q=80',
       alt: 'Company Logo',
@@ -151,7 +155,7 @@ export const BLOCK_REGISTRY: {
     type: 'footer',
     label: 'Footer',
     category: 'content',
-    allowedParents: ['column'],
+    allowedParents: ['column', 'if-branch', 'loop'],
     defaultProps: {
       text: '© 2026 Your Company Inc. All rights reserved.',
       companyAddress: '123 Main Street, Suite 400, San Francisco, CA 94105',
@@ -163,7 +167,28 @@ export const BLOCK_REGISTRY: {
       spacing: 16,
     },
   },
-} as const;
+  'if-else': {
+    type: 'if-else',
+    label: 'If / Else Condition',
+    category: 'logic',
+    allowedParents: ['column', 'if-branch', 'loop'],
+    defaultProps: {
+      condition: 'order.isVip',
+      showElse: true,
+      activeBranchView: 'then',
+    },
+  },
+  loop: {
+    type: 'loop',
+    label: 'Loop (Each)',
+    category: 'logic',
+    allowedParents: ['column', 'if-branch', 'loop'],
+    defaultProps: {
+      iterable: 'order.items',
+      itemName: 'item',
+    },
+  },
+};
 
 export const LAYOUT_REGISTRY = [
   { type: 'section', label: 'Section', description: 'Container section wrapper' },

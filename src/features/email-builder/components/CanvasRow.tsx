@@ -2,7 +2,7 @@
 
 import React, { useRef } from 'react';
 import { resizeColumns } from '../model/columnResize';
-import { BuilderColumn, BuilderRow } from '../model/types';
+import { BuilderBlockType, BuilderColumn, BuilderRow, DropTarget } from '../model/types';
 import { CanvasColumn } from './CanvasColumn';
 import { BlockToolbar } from './BlockToolbar';
 import { Trash2 } from 'lucide-react';
@@ -26,6 +26,7 @@ export interface CanvasRowProps {
   onDeleteRow?: () => void;
   onDuplicateRow?: () => void;
   onSelectParentSection?: () => void;
+  onAddBlockToContainer?: (target: DropTarget, blockType: BuilderBlockType) => void;
 }
 
 export function CanvasRow({
@@ -47,6 +48,7 @@ export function CanvasRow({
   onDeleteRow,
   onDuplicateRow,
   onSelectParentSection,
+  onAddBlockToContainer,
 }: CanvasRowProps) {
   const isResizingRef = useRef(false);
 
@@ -129,6 +131,7 @@ export function CanvasRow({
               onMoveBlock={onMoveBlock}
               onDuplicateBlock={onDuplicateBlock}
               onDeleteBlock={onDeleteBlock}
+              onAddBlockToContainer={onAddBlockToContainer}
             />
 
             {/* Draggable Column Divider between columns */}

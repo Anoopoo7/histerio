@@ -243,6 +243,37 @@ function renderBlockHtml(block: BuilderBlock): string {
   </tr>
 </table>`.trim();
     }
+
+    case 'if-else': {
+      const p = block.props;
+      const rawCond = (p.condition || '').trim();
+      const conditionTag = rawCond.replace(/^\{\{\s*#?if\s*/, '').replace(/\s*\}\}$/, '').trim();
+      const thenContent = (block.thenChildren || []).map(renderBlockHtml).join('\n');
+      const elseContent = (block.elseChildren || []).map(renderBlockHtml).join('\n');
+
+      if (!conditionTag) {
+        return thenContent;
+      }
+
+      if (p.showElse && ((block.elseChildren && block.elseChildren.length > 0) || elseContent.trim())) {
+        return `{{#if ${conditionTag}}}\n${thenContent}\n{{else}}\n${elseContent}\n{{/if}}`;
+      }
+      return `{{#if ${conditionTag}}}\n${thenContent}\n{{/if}}`;
+    }
+
+    case 'loop': {
+      const p = block.props;
+      const rawIter = (p.iterable || '').trim();
+      const iterTag = rawIter.replace(/^\{\{\s*#?(each)?\s*/, '').replace(/\s*\}\}$/, '').trim();
+      const childrenContent = (block.children || []).map(renderBlockHtml).join('\n');
+
+      if (!iterTag) {
+        return childrenContent;
+      }
+
+      const alias = p.itemName && p.itemName !== 'this' ? ` as |${p.itemName}|` : '';
+      return `{{#each ${iterTag}${alias}}}\n${childrenContent}\n{{/each}}`;
+    }
   }
 }
 
